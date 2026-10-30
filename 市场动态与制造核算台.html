@@ -1,0 +1,2463 @@
+<!DOCTYPE html>
+<!-- 市场动态与制造核算台. Copyright (C) 2026 Junchen-lich.
+     本程序是自由软件：可依 GNU 通用公共许可证（GPL v3 或更新版本）重新分发/修改，见 LICENSE；商业授权另行联系作者。 -->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>市场动态与制造核算台</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%2338c6d8' d='M12 2 3 20h4.2L12 9.4 16.8 20H21L12 2Z'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap">
+<style>
+:root{
+  --bg:#0b0f17; --bg2:#111826; --panel:#121a28; --panel2:#172233;
+  --line:#223044; --line2:#2a3a52;
+  --text:#dbe4f0; --muted:#8b98ab; --faint:#5b6a80;
+  --acc:#38c6d8; --acc2:#4d9fff; --pos:#3fd2a0; --neg:#f1657a; --warn:#f2b53c;
+  --mono:ui-monospace,"Cascadia Code",Consolas,"Noto Sans SC",monospace;
+  --shadow:0 10px 30px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:radial-gradient(1200px 700px at 80% -10%, #142a3a 0%, transparent 55%), var(--bg);
+  color:var(--text); font-family:"Noto Sans SC","Microsoft YaHei",system-ui,sans-serif;
+  font-size:15px; line-height:1.5; min-height:100vh;
+}
+a{color:var(--acc2); text-decoration:none}
+button{font-family:inherit}
+input,select{font-family:inherit; color:var(--text)}
+
+.banner{display:none; background:#3a2c12; color:#f2d389; font-size:13px; padding:9px 16px;
+  border-bottom:1px solid #6a5520; line-height:1.6}
+.banner.show{display:block}
+
+/* Header */
+.topbar{position:sticky; top:0; z-index:40; display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  padding:12px 16px; background:rgba(11,15,23,.86); backdrop-filter:blur(8px); border-bottom:1px solid var(--line)}
+.brand{display:flex; align-items:center; gap:10px; min-width:0}
+.brand .logo{width:30px;height:30px;flex:none}
+.brand h1{font-size:16px; font-weight:900; margin:0; letter-spacing:.5px; white-space:nowrap}
+.brand .sub{font-size:11px; color:var(--faint); letter-spacing:2px; text-transform:uppercase}
+.grow{flex:1}
+.pillrow{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+.pill{display:inline-flex; align-items:center; gap:6px; font-size:13px; padding:6px 10px;
+  border:1px solid var(--line2); border-radius:8px; background:var(--panel); color:var(--text)}
+.pill select{background:transparent; border:none; color:var(--text); font-size:13px; outline:none; cursor:pointer}
+.pill label{color:var(--muted); font-size:12px}
+/* 自定义深色下拉（替代原生 select，原生弹层为白底） */
+.csel{position:relative; display:inline-flex}
+.csel-btn{display:inline-flex; align-items:center; gap:6px; background:var(--panel); border:1px solid var(--line2); border-radius:8px; color:var(--text); font-size:13px; padding:6px 10px; cursor:pointer; white-space:nowrap; outline:none}
+.csel-btn:hover{filter:brightness(1.12)}
+.csel-btn .caret{width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid var(--muted); margin-left:4px}
+.csel-menu{position:absolute; top:calc(100%+6px); left:0; min-width:200px; background:var(--panel); border:1px solid var(--line2); border-radius:8px; box-shadow:var(--shadow); z-index:70; display:none; padding-bottom:4px}
+.csel-search{box-sizing:border-box; width:calc(100% - 14px); margin:6px 7px 4px; padding:6px 9px; background:var(--bg2); border:1px solid var(--line2); border-radius:6px; color:var(--text); font-size:13px; outline:none}
+.csel-search:focus{border-color:var(--acc)}
+.csel-search::placeholder{color:var(--muted)}
+.csel-list{max-height:280px; overflow:auto}
+.csel[data-align="right"] .csel-menu{left:auto; right:0}
+.csel.open .csel-menu{display:block}
+.csel-menu .copt{padding:8px 12px; font-size:13px; color:var(--text); cursor:pointer; white-space:nowrap}
+.csel-menu .copt:hover{background:var(--bg2)}
+.csel-menu .copt.on{color:var(--acc); font-weight:700}
+/* 市场动态子标签 */
+.subnav{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px}
+.subnav button{background:var(--panel2); border:1px solid var(--line2); color:var(--muted); padding:7px 14px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer}
+.subnav button:hover{color:var(--text); filter:brightness(1.1)}
+.subnav button.on{background:var(--acc); border-color:var(--acc); color:#062129}
+.dot{width:8px;height:8px;border-radius:50%}
+.dot.on{background:var(--pos); box-shadow:0 0 8px var(--pos)}
+
+/* Nav */
+nav{display:flex; gap:4px; padding:0 16px 0; border-bottom:1px solid var(--line);
+  background:var(--bg2); overflow-x:auto; position:sticky; top:62px; z-index:30}
+nav button{appearance:none; border:none; background:transparent; color:var(--muted);
+  font-size:14px; font-weight:700; padding:12px 16px; cursor:pointer; white-space:nowrap;
+  border-bottom:2px solid transparent; transition:color .15s}
+nav button.active{color:var(--acc); border-bottom-color:var(--acc)}
+nav button:hover{color:var(--text)}
+
+/* Layout */
+main{max-width:1340px; margin:0 auto; padding:20px 16px 64px}
+.view{display:none}
+.view.active{display:block}
+.grid{display:grid; gap:14px}
+.g2{grid-template-columns:1fr}
+.growh2{grid-template-columns:1fr}
+.card{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px}
+.card h3{margin:0 0 12px; font-size:14px; font-weight:700; color:var(--text); display:flex; align-items:center; gap:8px}
+.card h3 .hint{color:var(--faint); font-weight:400; font-size:12px; margin-left:auto}
+.card .tip{font-size:12px; color:var(--faint); line-height:1.5}
+
+/* Controls */
+.field{display:flex; flex-direction:column; gap:5px; margin-bottom:10px}
+.field label{font-size:12px; color:var(--muted)}
+.field .row{display:flex; gap:8px; align-items:center}
+input[type=text],input[type=number],input:not([type]),select,textarea{
+  background:var(--bg2); border:1px solid var(--line2); border-radius:8px;
+  padding:9px 10px; font-size:15px; color:var(--text); outline:none; min-width:0; width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--acc)}
+textarea{resize:vertical; line-height:1.6; font-family:ui-monospace,Consolas,monospace; font-size:13px}
+input.sm{padding:6px 8px; font-size:13px}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none; margin:0}
+input[type=number]{-moz-appearance:textfield; appearance:textfield}
+/* 自定义步进器：1/10/100 三挡 + 左减右加 */
+.stepper{display:inline-flex; align-items:stretch; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:var(--bg2); width:100%; min-width:0}
+.stepper:focus-within{border-color:var(--acc)}
+.stepper .stsel{display:flex; align-items:center; border-right:1px solid var(--line2); padding:0 2px; background:var(--bg3)}
+.stepper .stsel button{background:transparent; border:none; color:var(--faint); font-size:11px; font-weight:700; padding:4px 5px; cursor:pointer; line-height:1; border-radius:4px}
+.stepper .stsel button:hover{color:var(--text)}
+.stepper .stsel button.on{color:var(--acc); background:rgba(122,196,255,.14)}
+.stepper .stbtn{background:transparent; border:none; color:var(--text); width:30px; flex:none; font-size:16px; cursor:pointer; line-height:1}
+.stepper .stbtn:hover{background:var(--bg3)}
+.stepper .stbtn.minus{border-right:1px solid var(--line2)}
+.stepper input{flex:1; min-width:0; text-align:center; border:none!important; background:transparent!important; color:var(--text)!important; box-shadow:none!important; padding:7px 0!important; -moz-appearance:textfield}
+.stepper input:focus{border:none!important}
+.btn{display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  background:var(--panel2); border:1px solid var(--line2); color:var(--text);
+  padding:9px 14px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; transition:filter .15s; white-space:nowrap}
+.btn:hover{filter:brightness(1.15)}
+.btn.primary{background:var(--acc); border-color:var(--acc); color:#062129}
+.btn.ghost{background:transparent}
+.btn.small{padding:5px 9px; font-size:12px}
+.btn.danger{color:var(--neg); border-color:#4a2430}
+
+/* Status / toast */
+.status{font-size:12px; color:var(--muted); min-height:18px; margin-top:8px}
+.status.err{color:var(--neg)}
+.status.ok{color:var(--pos)}
+.toast{position:fixed; left:50%; bottom:22px; transform:translateX(-50%) translateY(20px);
+  background:#0e1622; border:1px solid var(--line2); color:var(--text);
+  padding:10px 16px; border-radius:10px; font-size:13px; opacity:0; pointer-events:none;
+  transition:opacity .25s, transform .25s; z-index:90; box-shadow:var(--shadow); max-width:86vw}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+.toast.err{border-color:#4a2430}
+.toast.ok{border-color:#123f35}
+
+/* Market */
+.itemhead{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:14px}
+.itemhead .nm{font-size:20px; font-weight:900}
+.itemhead .meta{font-size:12px; color:var(--faint)}
+.kpis{display:grid; gap:10px; grid-template-columns:repeat(2,1fr); margin-bottom:14px}
+.kpi{background:var(--bg2); border:1px solid var(--line); border-radius:10px; padding:12px}
+.kpi .k{font-size:11px; color:var(--muted); margin-bottom:4px}
+.kpi .v{font-family:var(--mono); font-size:19px; font-weight:700}
+.kpi .v.up{color:var(--neg)} .kpi .v.dn{color:var(--pos)}
+.kpi .s{font-size:11px; color:var(--faint); margin-top:2px}
+.orders{width:100%; border-collapse:collapse; font-size:13px; table-layout:fixed}
+.orders colgroup col:nth-child(1){width:20%}
+.orders colgroup col:nth-child(2){width:16%}
+.orders colgroup col:nth-child(3){width:10%}
+.orders colgroup col:nth-child(4){width:8%}
+.orders colgroup col:nth-child(5){width:16%}
+.orders colgroup col:nth-child(6){width:10%}
+.orders colgroup col:nth-child(7){width:20%}
+.orders th{font-size:11px; color:var(--muted); font-weight:500; text-align:left;
+  padding:8px; border-bottom:1px solid var(--line2)}
+.orders td{padding:7px 8px; border-bottom:1px solid var(--line); font-family:var(--mono); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.orders td.stn{font-family:inherit; color:var(--muted); font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:0}
+.orders .sell{color:var(--neg)} .orders .buy{color:var(--pos)}
+.orders .vol{color:var(--muted)}
+.tab2{display:flex; gap:6px; margin-bottom:10px}
+.tab2 button{border:1px solid var(--line2); background:transparent; color:var(--muted);
+  padding:5px 12px; border-radius:7px; font-size:13px; cursor:pointer; font-weight:600}
+.tab2 button.on{color:var(--acc); border-color:var(--acc)}
+.statgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px}
+.statc{background:var(--bg2); border:1px solid var(--line); border-radius:9px; padding:10px}
+.statc .h{font-size:11px; color:var(--muted); margin-bottom:6px; display:flex; justify-content:space-between}
+.statc .r{display:flex; justify-content:space-between; font-size:12px; padding:2px 0}
+.statc .r .k{color:var(--faint)}
+.statc .r .v{font-family:var(--mono)}
+
+/* BOM */
+.bomrow{display:grid; gap:8px; grid-template-columns:1fr 1fr 96px 64px 74px auto; align-items:center; margin-bottom:8px}
+.bomrow input{min-width:0}
+.bomrow .del{background:none;border:none;color:var(--faint);cursor:pointer;font-size:17px;line-height:1}
+.bomrow .del:hover{color:var(--neg)}
+.eq{font-family:var(--mono); font-size:11px; color:var(--acc); white-space:nowrap}
+.bomhead{display:grid; gap:8px; grid-template-columns:1fr 1fr 96px 64px 74px auto;
+  font-size:11px; color:var(--muted); margin-bottom:6px; padding:0 4px}
+.bomhead.m5,.bomrow.m5,.bomfoot.m5{grid-template-columns:1fr 96px 64px 74px auto}
+.bomfoot.m5 .lbl{grid-column:1/5}
+.bomfoot{display:grid; gap:8px; grid-template-columns:1fr 1fr 96px 64px 74px auto; align-items:center}
+.bomfoot .lbl{grid-column:1/6; font-size:12px; color:var(--muted)}
+
+/* Fee / rows */
+.rows{display:flex; flex-direction:column; gap:8px}
+.rrow{display:flex; justify-content:space-between; align-items:baseline; gap:10px; font-size:13px}
+.rrow .k{color:var(--muted)}
+.rrow .v{font-family:var(--mono); font-weight:600}
+.rrow.sub .k{color:var(--faint); font-size:12px; padding-left:10px}
+.rrow.total .v{font-size:18px; color:var(--acc)}
+.rrow.total{border-top:1px solid var(--line2); padding-top:10px; margin-top:4px}
+.dl{display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:12px}
+.dl .d{background:var(--bg2); border:1px solid var(--line); border-radius:9px; padding:10px}
+.dl .d .k{font-size:11px; color:var(--muted)}
+.dl .d .v{font-family:var(--mono); font-size:16px; font-weight:700}
+.slider{width:100%; accent-color:var(--acc)}
+
+/* Settings */
+.setlist{display:flex; flex-direction:column; gap:10px}
+.setrow{display:flex; align-items:center; justify-content:space-between; gap:12px;
+  border-bottom:1px dashed var(--line); padding-bottom:10px}
+.setrow .k{font-size:14px}
+.setrow .d{font-size:12px; color:var(--faint); margin-top:2px}
+.setrow .c{width:150px}
+
+/* Search list */
+.searchlist{max-height:320px; overflow:auto; display:flex; flex-direction:column; gap:6px; margin-top:10px}
+.sitem{display:flex; justify-content:space-between; align-items:center; gap:8px;
+  background:var(--bg2); border:1px solid var(--line); border-radius:8px; padding:9px 10px; cursor:pointer}
+.sitem:hover{border-color:var(--acc)}
+.sitem .n{font-size:14px; font-weight:600}
+.sitem .id{font-size:11px; color:var(--faint); font-family:var(--mono)}
+/* 蓝图多选合并：结果行左侧勾选框，正文左对齐 */
+.sitem.bpitem{justify-content:flex-start}
+.sitem.bpitem .bpchk{flex:none; display:flex; align-items:center; cursor:pointer}
+.sitem.bpitem .bpchk input{width:16px; height:16px; accent-color:var(--acc); cursor:pointer}
+.sitem.bpitem .n{flex:none; min-width:150px}
+.sitem.bpitem .id{flex:1; white-space:normal; line-height:1.35}
+
+/* Dashboard */
+.dgrid{display:grid; gap:12px; grid-template-columns:1fr; margin-top:14px}
+.wcard{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px;
+  display:flex; flex-direction:column; gap:10px; transition:border-color .2s}
+.wcard:hover{border-color:var(--acc)}
+.wcard .whead{display:flex; align-items:center; justify-content:space-between; gap:8px}
+.wcard .wn{font-size:15px; font-weight:800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.wcard .del{background:none;border:none;color:var(--faint);cursor:pointer;font-size:17px;line-height:1}
+.wcard .del:hover{color:var(--neg)}
+.wcard .wrow{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+.wcard .wk{font-size:11px; color:var(--muted); margin-bottom:3px}
+.wcard .wv{font-family:var(--mono); font-size:15px; font-weight:700; word-break:break-all}
+.wcard .wv.up{color:var(--pos)} .wcard .wv.dn{color:var(--neg)}
+.wcard .chg{font-size:11px; color:var(--muted); font-weight:400}
+.drunk{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+.mineral{display:flex; flex-wrap:wrap; gap:8px}
+.mineral .m{background:var(--bg2); border:1px solid var(--line); border-radius:8px; padding:7px 10px; font-size:12px}
+.mineral .m b{font-family:var(--mono); color:var(--pos)}
+.chips{display:flex; flex-wrap:wrap; gap:8px; margin:10px 0 12px}
+.chip{background:var(--bg2); border:1px solid var(--line); border-radius:999px; padding:6px 12px; font-size:13px; color:var(--muted); cursor:pointer}
+.chip.on{background:var(--acc); border-color:var(--acc); color:#04121a; font-weight:700}
+.cattbl{width:100%; border-collapse:collapse; font-size:13px}
+.cattbl th{text-align:left; font-size:11px; color:var(--muted); padding:6px 8px; border-bottom:1px solid var(--line)}
+.cattbl td{padding:8px; border-bottom:1px solid var(--line); font-family:var(--mono)}
+.cattbl td:first-child{font-family:inherit}
+.cattbl .iid{font-size:11px; color:var(--faint)}
+.cattbl .tip{padding:10px 8px}
+.page-title{margin:0 0 14px; font-size:16px; font-weight:800; color:var(--text); display:flex; align-items:center; gap:8px}
+.page-title .hint{color:var(--faint); font-weight:400; font-size:12px; margin-left:auto}
+.acttabs{display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap}.acttabs .act{background:var(--bg2); border:1px solid var(--line); border-radius:999px; padding:7px 14px; font-size:14px; color:var(--muted); cursor:pointer}
+.acttabs .act.on{background:var(--acc); border-color:var(--acc); color:#04121a; font-weight:700}
+.actpane{display:none}
+.actpane.on{display:block}
+.bpinfo{background:var(--bg2); border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin:10px 0; font-size:13px; line-height:1.6}
+.bpinfo b{color:var(--acc)}
+.skgrid{display:grid; grid-template-columns:1fr; gap:10px; margin-top:12px}
+.skrow{display:flex; align-items:center; justify-content:space-between; gap:10px; background:var(--bg2); border:1px solid var(--line); border-radius:10px; padding:9px 12px}
+.skrow .skd{flex:1}
+.skrow .skd .k{font-size:14px; font-weight:700}
+.skrow .skd .d{font-size:11px; color:var(--muted)}
+.skrow select.sk{width:76px; padding:6px}
+.cheffect{background:var(--bg2); border:1px solid var(--line); border-radius:10px; padding:12px; margin-top:10px; font-size:13px; line-height:1.7}
+@media(min-width:768px){ .skgrid{grid-template-columns:1fr 1fr} }
+
+@media (min-width:768px){
+  .g2{grid-template-columns:1fr 1fr}
+  .growh2{grid-template-columns:1.4fr 1fr}
+  .kpis{grid-template-columns:repeat(4,1fr)}
+  .dgrid{grid-template-columns:repeat(2,1fr)}
+}
+
+/* 避免数值/标签换行 */
+.kpi .v,.dl .d .v,.rrow .v,.statc .r .v,.wcard .wv,.orders td,.cattbl td,.cattbl .iid,
+.sitem .id,.eq,.mineral .m b,.pill,.btn{white-space:nowrap}
+.cattbl{table-layout:fixed}
+.cattbl th{white-space:nowrap}
+
+/* 市场目录树（实时大屏 → 市场动态） */
+.mktlayout{display:grid; grid-template-columns:240px 1fr; gap:14px; margin-top:14px; align-items:start}
+.mktree{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px; max-height:72vh; overflow:auto; position:sticky; top:132px}
+.mktree h4{font-size:13px; color:var(--muted); margin:0 0 8px; display:flex; justify-content:space-between; gap:6px; white-space:nowrap}
+.mktree h4 .trcnt{color:var(--faint); font-weight:400}
+.tree{font-size:13px; line-height:1.5}
+.tn{display:flex; align-items:center; gap:5px; padding:4px 6px; border-radius:6px; cursor:pointer; color:var(--text); user-select:none}
+.tn:hover{background:var(--bg2)}
+.tn .caret{width:13px; flex:none; color:var(--faint); font-size:11px; text-align:center}
+.tn .gname{overflow:hidden; text-overflow:ellipsis}
+.tn .cnt{color:var(--faint); font-size:11px; margin-left:auto; flex:none}
+.tn.selected{background:var(--acc); color:#04121a}
+.tn.selected .cnt,.tn.selected .caret{color:#0a2a30}
+.tkids{margin-left:13px; border-left:1px solid var(--line2); padding-left:5px; display:none}
+.tkids.open{display:block}
+.tleaf{display:flex; align-items:center; justify-content:space-between; gap:6px; padding:4px 8px; border-radius:6px; cursor:pointer; color:var(--text); white-space:nowrap}
+.tleaf:hover{background:var(--bg2)}
+.tleaf.selected{background:var(--acc); color:#04121a}
+.tleaf .gname{overflow:hidden; text-overflow:ellipsis}
+.tleaf .cnt{color:var(--faint); font-size:11px; flex:none}
+.tleaf.selected .cnt{color:#0a2a30}
+.trload{font-size:12px; color:var(--faint); padding:4px 6px}
+.treesearch{display:flex; gap:6px; margin-bottom:8px; align-items:center}
+.treesearch input{flex:1; min-width:0}
+.tn.fav{color:var(--acc); font-weight:700; border-bottom:1px solid var(--line); border-radius:6px 6px 0 0}
+.tleaf .x{margin-left:4px; color:var(--faint); font-size:13px; cursor:pointer; padding:0 4px; flex:none}
+.tleaf .x:hover{color:var(--danger,#e4606a)}
+#mFavBtn.on{background:var(--acc); color:#04121a}
+/* 深色滚动条（与整体深色视觉一致）：市场目录、搜索列表、自定义下拉等可滚动面板 */
+.mktree::-webkit-scrollbar, .searchlist::-webkit-scrollbar, .csel-menu::-webkit-scrollbar,
+.subpane::-webkit-scrollbar{width:8px; height:8px}
+.mktree::-webkit-scrollbar-track, .searchlist::-webkit-scrollbar-track, .csel-menu::-webkit-scrollbar-track,
+.subpane::-webkit-scrollbar-track{background:transparent}
+.mktree::-webkit-scrollbar-thumb, .searchlist::-webkit-scrollbar-thumb, .csel-menu::-webkit-scrollbar-thumb,
+.subpane::-webkit-scrollbar-thumb{background:#2a3a52; border-radius:6px; border:2px solid transparent; background-clip:content-box}
+.mktree::-webkit-scrollbar-thumb:hover, .searchlist::-webkit-scrollbar-thumb:hover,
+.csel-menu::-webkit-scrollbar-thumb:hover, .subpane::-webkit-scrollbar-thumb:hover{background:#3a4d6b; border:2px solid transparent; background-clip:content-box}
+.mktree, .searchlist, .csel-menu, .subpane{scrollbar-width:thin; scrollbar-color:#2a3a52 transparent}
+@media (max-width:860px){
+  .mktlayout{grid-template-columns:1fr}
+  .mktree{position:static; max-height:42vh}
+}
+</style>
+</head>
+<body>
+<div class="banner" id="fileBanner">检测到以 file:// 方式直接打开。本工具的数据来自第三方市场数据服务，因跨域限制需通过本地服务器运行：在目录下执行 <b>node server.js</b>，然后访问 <b>http://localhost:8657</b>。</div>
+<header class="topbar">
+  <div class="brand">
+    <svg class="logo" viewBox="0 0 24 24" aria-hidden="true"><path fill="#38c6d8" d="M12 2 3 20h4.2L12 9.4 16.8 20H21L12 2Z"/></svg>
+    <div><h1>市场动态与制造核算台</h1><div class="sub">市场数据 · 工业 · 定价</div></div>
+  </div>
+  <div class="grow"></div>
+  <div class="pillrow">
+    <span class="pill"><span class="dot on"></span><label>服务器</label>
+      <div class="csel" id="topServer" data-align="right"></div>
+    </span>
+    <span class="pill"><label>星域</label><div class="csel" id="topRegion" data-align="right"></div></span>
+    <span class="pill"><label>星座</label><div class="csel" id="topConstellation" data-align="right"></div></span>
+    <span class="pill"><label>星系</label><div class="csel" id="topSystem" data-align="right"></div></span>
+  </div>
+</header>
+<nav id="nav" aria-label="主导航">
+  <button data-view="dash" class="active">市场动态</button>
+  <button data-view="industry">工业生产</button>
+  <button data-view="manuf">商品制造</button>
+  <button data-view="sell">挂单核算</button>
+  <button data-view="char">角色信息</button>
+</nav>
+<main>
+  <!-- ===== 视图：市场动态（市场查询 + 实时大屏 合并） ===== -->
+  <section id="view-dash" class="view active">
+    <div class="subnav">
+      <button data-sub="live" class="on">实时交易</button>
+      <button data-sub="contract">合同查询</button>
+      <button data-sub="scan">扫描估价</button>
+    </div>
+    <div id="sub-live" class="subpane">
+    <div class="card">
+      <h3>实时交易 <span class="hint">物品查询 · 市场目录 · 行情</span></h3>
+      <div class="drunk">
+        <span class="pill"><label>刷新间隔</label>
+          <select id="dInterval"><option value="15">15秒</option><option value="30">30秒</option><option value="60">1分钟</option><option value="300">5分钟</option><option value="900" selected>15分钟</option><option value="1800">30分钟</option><option value="3600">1小时</option></select>
+        </span>
+        <button class="btn" id="dToggle">暂停</button>
+        <button class="btn ghost" id="dRefresh">立即刷新</button>
+      </div>
+      <div id="mStatus" class="status">在左侧目录搜索或点选物品查看行情，可收藏常用商品跟踪。</div>
+      <div class="kpis" style="margin-top:14px;grid-template-columns:repeat(3,1fr)">
+        <div class="kpi"><div class="k">交易区</div><div class="v" id="dRegion" style="font-size:14px">—</div></div>
+        <div class="kpi"><div class="k">最后更新</div><div class="v" id="dUpdated" style="font-size:13px">—</div></div>
+        <div class="kpi"><div class="k">自动刷新</div><div class="v" id="dCountdown" style="font-size:13px">—</div></div>
+      </div>
+      <div id="dStatus" class="status"></div>
+    </div>
+
+    <div class="mktlayout">
+      <div class="mktree">
+        <h4>市场目录 <span class="trcnt" id="treeCount"></span></h4>
+        <div class="treesearch">
+          <input type="text" id="mSearch" placeholder="搜索物品（中文名）…" style="flex:1;min-width:120px">
+          <button class="btn small primary" id="mSearchBtn">查询</button>
+        </div>
+        <div id="mSearchList" class="searchlist"></div>
+        <div id="treeBox" class="tree"></div>
+        <div class="trload" id="treeStatus"></div>
+      </div>
+      <div>
+        <div class="card">
+          <h3>物品行情 <span class="hint">目录/搜索选定 · 收藏跟踪</span></h3>
+          <div id="mEmpty" class="tip">在左侧市场目录点选或搜索物品查看当前行情。</div>
+          <div id="mDetail" style="display:none">
+            <div class="itemhead"><span class="nm" id="mItemName">—</span><button class="btn small" id="mFavBtn">☆ 收藏</button><span class="meta" id="mItemMeta"></span></div>
+            <div class="kpis">
+              <div class="kpi"><div class="k">最低卖价</div><div class="v dn" id="kLowestSell">—</div><div class="s" id="kLowestSellVol"></div></div>
+              <div class="kpi"><div class="k">最高买价</div><div class="v up" id="kHighestBuy">—</div><div class="s" id="kHighestBuyVol"></div></div>
+              <div class="kpi"><div class="k">卖方挂单量</div><div class="v" id="kSellVol">—</div><div class="s">出售方订单总量</div></div>
+              <div class="kpi"><div class="k">买方挂单量</div><div class="v" id="kBuyVol">—</div><div class="s">收购方订单总量</div></div>
+            </div>
+            <div class="tab2" style="margin-top:2px">
+              <span style="flex:1"></span>
+              <button data-mtab="orders" class="on">订单簿</button>
+              <button data-mtab="stats">价格统计</button>
+            </div>
+            <div id="mtOrders">
+              <table class="orders"><colgroup><col><col><col><col><col><col><col></colgroup>
+                <thead><tr><th>空间站</th><th>卖单价</th><th>卖数量</th><th>卖收单范围</th><th>买单价</th><th>买数量</th><th>买收单范围</th></tr></thead>
+                <tbody id="mOrdersBody"><tr><td colspan="7" style="color:var(--faint)">暂无订单数据</td></tr></tbody>
+              </table>
+              <div class="tip" style="margin-top:4px">卖单价＝卖出方最低挂单价（你要买的价格）；买单价＝收购方最高挂单价（你要卖的价格）。每个空间站取最优卖单与最优买单并排列出。</div>
+            </div>
+            <div id="mtStats" style="display:none">
+              <div class="statgrid" id="mStatGrid"></div>
+            </div>
+          </div>
+          <div class="field" style="margin-top:12px"><label>吉他基础矿物收购最高价（矿物收购参考）</label>
+            <div class="mineral" id="dMineral"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+    <div id="sub-contract" class="subpane" style="display:none">
+      <div class="card">
+        <h3>合同查询 <span class="hint">查询当前服务器公开合同</span></h3>
+        <div class="field" style="margin-top:6px">
+          <label>公开合同</label>
+          <div class="row">
+            <button class="btn primary" id="conLoad">查询公开合同</button>
+            <span class="tip" id="conRegionTip"></span>
+          </div>
+        </div>
+        <div id="conStatus" class="status"></div>
+        <div id="conBody"></div>
+      </div>
+    </div>
+    <div id="sub-scan" class="subpane" style="display:none">
+      <div class="card">
+        <h3>扫描估价 <span class="hint">粘贴物品清单 · 按市场实时价逐项估值</span></h3>
+        <div class="field">
+          <label>粘贴游戏内物品/舰船清单（支持直接粘贴，取第1列名称与第2列数量，数量为空按 1；自动剥离属主「- 角色名」、前置「【标签】」、装载标签与星号，识别正确舰船型号；也兼容「数量 x 物品名」）</label>
+          <textarea id="scanIn" rows="9" placeholder="强制紧凑型磁力ECM&#9;1&#9;ECM&#9;&#9;中能量&#9;5 m3&#9;&#9;50,140.00 星币&#10;星爆轻型导弹蓝图&#9;&#9;导弹蓝图&#9;&#9;0.01 m3&#9;&#9;140,000.00 星币&#10;狞獾级 x 2"></textarea>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button class="btn primary" id="scanGo">估算价值</button>
+          <button class="btn ghost" id="scanClear">清空</button>
+        </div>
+        <div id="scanStatus" class="status"></div>
+        <div id="scanResult" style="display:none">
+          <table class="orders"><colgroup><col style="width:44%"><col style="width:14%"><col style="width:21%"><col style="width:21%"></colgroup>
+            <thead><tr><th>物品</th><th>数量</th><th>市场单价</th><th>小计</th></tr></thead>
+            <tbody id="scanBody"></tbody>
+          </table>
+          <div class="rrow total" style="margin-top:8px"><span class="k">清单总估值</span><span class="v" id="scanTotal">0</span></div>
+          <div class="tip" style="margin-top:4px">单价取当前交易区卖方最低挂单价（买入成本口径）；解析失败的行会列出以便核对。</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 视图：生产制造 ===== -->
+  <section id="view-industry" class="view">
+    <h3 class="page-title">工业生产 <span class="hint">材料提炼 · 原材料加工（反应） · 行星工业 · 雇佣兵</span></h3>
+    <div class="acttabs">
+      <button class="act on" data-act="refine">提炼</button>
+      <button class="act" data-act="reaction">反应</button>
+      <button class="act" data-act="pi">行星工业</button>
+      <button class="act" data-act="mercenary">雇佣兵巢穴</button>
+    </div>
+
+    <!-- 提炼 -->
+    <div class="actpane on" id="pane-refine">
+      <div class="card">
+        <h3>提炼 <span class="hint">矿 / 冰 → 精炼矿物 · 受提炼技能与设施加成</span></h3>
+        <div class="grid g2">
+          <div class="field"><label>精炼产出率（%，由提炼技能与设施决定）</label><input type="number" id="rYield" value="100" step="0.1" class="qty"></div>
+          <div class="field"><label>矿/冰量（单位）</label><input type="number" id="rQty" value="1000" step="100" class="qty"></div>
+        </div>
+        <div id="rBreak"></div>
+        <div class="row" style="margin-top:10px"><button class="btn small" id="rAddBtn">＋ 添加矿物产出</button><span class="tip" style="margin-left:8px">每单位产出量、单价均可编辑</span></div>
+        <div class="rrow total"><span class="k">精炼产物总价值</span><span class="v" id="rTotal">0</span></div>
+        <div class="tip" style="margin-top:6px">按你实际提炼所得逐条录入矿物（每单位产出 × 精炼产出率 × 矿量）。精炼产出率含提炼学概论技能加成，可调基础值。矿物单价可手动填或用「制造」页拉取。</div>
+      </div>
+    </div>
+
+    <!-- 反应（原材料加工） -->
+    <div class="actpane" id="pane-reaction">
+      <div class="grid growh2">
+        <div class="card">
+          <h3>反应 · 原材料加工 <span class="hint">反应蓝图 → 中间材料 · 反应堆设施</span></h3>
+          <div class="field" style="margin-top:6px">
+            <label>选择反应蓝图（搜索反应配方，来自内置 SDE 工业数据）</label>
+            <div class="row">
+              <input type="text" id="reSearch" placeholder="输入反应产物/蓝图中文名，如：复杂反应、聚合物…">
+              <button class="btn" id="reSearchBtn">搜索反应蓝图</button>
+            </div>
+            <div id="reStatus" class="status"></div>
+            <div id="reList" class="searchlist" style="display:none"></div>
+          </div>
+          <div id="reInfo" class="bpinfo" style="display:none"></div>
+          <div class="bomhead"><span>材料名称</span><span>单价</span><span>数量</span><span></span></div>
+          <div id="reMats"></div>
+          <div class="row" style="margin-top:12px">
+            <button class="btn" id="rePull">拉取材料市价</button>
+            <button class="btn ghost" id="reCopy">复制采购清单</button>
+          </div>
+          <div id="reStatus2" class="status"></div>
+        </div>
+        <div class="card">
+          <h3>反应核算 <span class="hint">材料 → 产物</span></h3>
+          <div class="field"><label>生产建筑（全局）</label><select id="indBuilding"></select></div>
+          <div class="field"><label>反应批次（流程数）</label><input type="number" id="reRuns" value="1" min="1" step="1" class="qty"></div>
+          <div class="rrow sub" id="reTimeRow"><span class="k">单流程反应时间</span><span class="v" id="reTime">—</span></div>
+          <div class="rows" id="reBreak"></div>
+          <div class="rrow total"><span class="k">单流程反应成本</span><span class="v" id="rePerRun">0</span></div>
+          <div class="rrow"><span class="k">产物总价值</span><span class="v" id="reProdVal">0</span></div>
+          <div class="rrow total"><span class="k">单流程利润</span><span class="v" id="reProfit">0</span></div>
+          <div class="tip" style="margin-top:8px">反应产物按市场买/卖价估值；材料按所选交易区市价计成本。反应需在反应堆设施（POS/昂色塔反应堆）进行，费率随生产建筑全局。</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 行星工业 -->
+    <div class="actpane" id="pane-pi">
+      <div class="grid growh2">
+        <div class="card">
+          <h3>行星工业 <span class="hint">指挥中心 → 行星商品 · 三级加工</span></h3>
+          <div class="grid g2">
+            <div class="field"><label>选择加工配方</label><select id="piSchematic"></select></div>
+            <div class="field"><label>指挥中心等级</label><select id="piCC">
+              <option value="1">指挥中心 I（提取 1 采集器）</option>
+              <option value="2">指挥中心 II（提取 2 采集器）</option>
+              <option value="3">指挥中心 III（提取 3 采集器）</option>
+            </select></div>
+          </div>
+          <div class="grid g2">
+            <div class="field"><label>运行周期数</label><input type="number" id="piRuns" value="1" min="1" step="1" class="qty"></div>
+            <div class="field"><label>产品税率（%，市场设施税）</label><input type="number" id="piTax" value="0" step="0.1" class="qty"></div>
+          </div>
+          <div id="piInfo" class="bpinfo"></div>
+          <div class="bomhead"><span>输入材料</span><span>单价</span><span>数量</span><span></span></div>
+          <div id="piMats"></div>
+          <div class="row" style="margin-top:12px">
+            <button class="btn" id="piPull">拉取材料市价</button>
+            <button class="btn ghost" id="piCopy">复制采购清单</button>
+          </div>
+          <div id="piStatus2" class="status"></div>
+        </div>
+        <div class="card">
+          <h3>行星加工核算 <span class="hint">输入 → 产物 · 周期与时间</span></h3>
+          <div class="rrow sub" id="piTimeRow"><span class="k">单周期运行时间</span><span class="v" id="piTime">—</span></div>
+          <div class="rows" id="piBreak"></div>
+          <div class="rrow total"><span class="k">单周期成本</span><span class="v" id="piPerRun">0</span></div>
+          <div class="rrow"><span class="k">产物总价值</span><span class="v" id="piProdVal">0</span></div>
+          <div class="rrow total"><span class="k">单周期利润</span><span class="v" id="piProfit">0</span></div>
+          <div class="tip" style="margin-top:8px">P0 原始资源不花 ISK（由行星采集产出）；配方数据取自游戏静态数据行星示意图（planetSchematics）。P1→P4 产物可在市场挂单。产物与输入价按所选交易区市价估值。</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 雇佣兵巢穴 -->
+    <div class="actpane" id="pane-mercenary">
+      <div class="card">
+        <h3>雇佣兵巢穴 <span class="hint">战术行动 · 星域防御设施</span></h3>
+        <div class="tip">雇佣兵巢穴（Mercenary Den）为旗舰级防御建筑，产出需满足防御周期与消耗大量组件与塔防物资，投入产出比高度依赖星系主权/战况。本工具当前未接入官方构建成本明细，先提供手动录入核算：</div>
+        <div class="grid g2" style="margin-top:10px">
+          <div class="field"><label>单次补给总成本（ISK，含组件+物资+运费）</label><input type="number" id="mcCost" placeholder="0" min="0" step="1000000"></div>
+          <div class="field"><label>补给次数</label><input type="number" id="mcRuns" value="1" min="1" step="1" class="qty"></div>
+        </div>
+        <div class="grid g2">
+          <div class="field"><label>产出/补偿估值（ISK）</label><input type="number" id="mcOut" placeholder="0" min="0" step="1000000"></div>
+          <div class="field"><label>防御周期天数</label><input type="number" id="mcDays" value="7" min="1" step="1" class="qty"></div>
+        </div>
+        <div class="row" style="margin-top:10px"><button class="btn primary" id="mcCalc">计算雇佣兵巢穴投入产出</button></div>
+        <div class="rows" id="mcBreak"></div>
+        <div class="tip" style="margin-top:8px">结果＝（产出补偿 − 补给成本）÷ 天数，评估每日净收益。具体建筑组成与防御配方数据待官方/公共库补充后自动导入。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 视图：商品制造 ===== -->
+  <section id="view-manuf" class="view">
+    <h3 class="page-title">商品制造 <span class="hint">成品制造 · 材料/时间效率研究 · 拷贝 · 发明</span></h3>
+    <div class="acttabs">
+      <button class="act on" data-act="manu">制造</button>
+      <button class="act" data-act="me">材料效率研究</button>
+      <button class="act" data-act="te">时间效率研究</button>
+      <button class="act" data-act="copy">拷贝</button>
+      <button class="act" data-act="invent">发明</button>
+    </div>
+
+    <!-- 制造 -->
+    <div class="actpane on" id="pane-manu">
+      <div class="grid growh2">
+        <div class="card">
+          <h3>制造 · 材料清单（BOM） <span class="hint">工序 · 蓝图效率</span></h3>
+          <div class="field" style="margin-top:6px">
+            <label>选择蓝图 · 可多选后合并材料（内置全量蓝图库）</label>
+            <div class="row">
+              <input type="text" id="bpSearch" placeholder="输入蓝图中文名，如：狞獾级、白昼神级…">
+              <button class="btn" id="bpSearchBtn">搜索蓝图</button>
+            </div>
+            <div id="bpStatus" class="status"></div>
+            <div id="bpList" class="searchlist" style="display:none"></div>
+            <div class="row" style="margin-top:8px">
+              <button class="btn primary" id="bpMergeBtn" style="display:none">合并所选蓝图（<span class="cnt">0</span>）→ 材料清单</button>
+            </div>
+          </div>
+          <div id="bpInfo" class="bpinfo" style="display:none"></div>
+          <div class="bomhead m5"><span>材料名称</span><span>单价</span><span>数量</span><span>ME后</span><span></span></div>
+          <div id="bomRows"></div>
+          <div class="bomfoot m5"><span class="lbl">+ 添加材料</span><button class="btn small" id="bomAdd">＋ 添加</button></div>
+          <div class="row" style="margin-top:12px">
+            <button class="btn" id="bomPullAsk">拉取卖单价 · 买入成本</button>
+            <button class="btn" id="bomPullBid">拉取买单价 · 回收价</button>
+            <button class="btn ghost" id="bomClear">清空</button>
+            <button class="btn ghost" id="bomClip">复制采购清单</button>
+          </div>
+          <div id="bomStatus" class="status">可手动填写单价，或点上方按钮用 marketstat 拉取。</div>
+          <div class="tip" style="margin-top:6px">「拉取卖单价」填卖单最低价＝买入成本；「拉取买单价」填买单最高价＝回收价。「复制采购清单」生成可粘贴进游戏的批量采购文本（物品×数量）。</div>
+        </div>
+        <div class="card">
+          <h3>制造核算 <span class="hint">材料 + 工业费</span></h3>
+          <div class="field"><label>生产建筑（全局，自动填入制造服务费/材料加成/经纪费率/市场交易税）</label><select id="manuBuilding"></select></div>
+          <div class="grid g2">
+            <div class="field"><label>蓝图研究 ME（材料效率等级 0–10，对应游戏蓝图 ME）</label><select id="cME" class="qty"></select></div>
+            <div class="field"><label>蓝图损耗率（%，对应游戏蓝图基础损耗，随 ME 下降）</label><select id="cWF" class="qty"></select></div>
+          </div>
+          <div class="field"><label>时间效率 TE（0–20，对应游戏蓝图 TE，每级 -4% 制造时间，仅影响生产时间展示）</label><select id="cTE" class="qty"></select></div>
+          <div class="field"><label>制造批次（流程数，单个制造作业内重复的流程数）</label><input type="number" id="cRuns" value="1" min="1" step="1" class="qty"></div>
+          <div class="rrow sub" id="cTimeRow"><span class="k">单流程生产时间（仅参考，不计入成本）</span><span class="v" id="cTime">—</span></div>
+          <div class="field"><label>制造服务费（ISK，作业固定一次，随生产建筑）</label><input type="number" id="cJobFee" value="0" step="1000"></div>
+          <div class="field"><label>材料加成费率（%，结构税/材料加成，负值＝减少材料消耗）</label><select id="cMatFee" class="qty"></select></div>
+          <div class="rows" id="cBreak"></div>
+          <div style="margin-top:14px">
+            <div class="rrow total"><span class="k">1 流程制造成本</span><span class="v" id="cPerRun">0</span></div>
+            <div class="rrow"><span class="k">单件成本（1流程 ÷ 产出数）</span><span class="v" id="cTotal">0</span></div>
+            <div class="rrow total"><span class="k">总成本（1流程 × 批次）</span><span class="v" id="cTotalAll">0</span></div>
+            <div class="dl">
+              <div class="d"><div class="k">材料总成本</div><div class="v" id="cMatTotal">0</div></div>
+              <div class="d"><div class="k">工业费合计</div><div class="v" id="cFeeTotal">0</div></div>
+            </div>
+          </div>
+          <div class="row" style="margin-top:14px"><button class="btn primary" id="cToSell">以单件成本去算挂单利润 →</button></div>
+          <div class="tip" style="margin-top:10px">成本口径：1流程＝材料+工业费做一次；单件＝1流程÷单流程产出数；总＝1流程×批次。费率由「生产建筑」与「角色」技能自动填入，可手动微调。</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 材料效率研究 -->
+    <div class="actpane" id="pane-me">
+      <div class="card">
+        <h3>材料效率研究（ME） <span class="hint">降低蓝图材料需求 · 反应堆实验室</span></h3>
+        <div class="field" style="margin-top:6px">
+          <label>选择蓝图（材料效率研究）</label>
+          <div class="row">
+            <input type="text" id="meSearch" placeholder="输入蓝图中文名…">
+            <button class="btn" id="meSearchBtn">搜索蓝图</button>
+          </div>
+        </div>
+        <div id="meList" class="searchlist" style="display:none"></div>
+        <div id="meStatus" class="status"></div>
+        <div id="meInfo"></div>
+        <div class="field" style="margin-top:10px"><label>研究到等级</label><input type="number" id="meLevel" value="10" min="0" max="20" step="1" class="qty"></div>
+        <div class="rows" id="meBreak"></div>
+        <div class="tip" style="margin-top:6px">ME 每级约降低 2%（T1）材料需求；研究时间取自 SDE 工业数据，按角色「科研」「实验室作业」技能修正。</div>
+      </div>
+    </div>
+
+    <!-- 时间效率研究 -->
+    <div class="actpane" id="pane-te">
+      <div class="card">
+        <h3>时间效率研究（TE） <span class="hint">降低蓝图生产时间</span></h3>
+        <div class="field" style="margin-top:6px">
+          <label>选择蓝图（时间效率研究）</label>
+          <div class="row">
+            <input type="text" id="teSearch" placeholder="输入蓝图中文名…">
+            <button class="btn" id="teSearchBtn">搜索蓝图</button>
+          </div>
+        </div>
+        <div id="teList" class="searchlist" style="display:none"></div>
+        <div id="teStatus" class="status"></div>
+        <div id="teInfo"></div>
+        <div class="field" style="margin-top:10px"><label>研究到等级</label><input type="number" id="teLevel" value="10" min="0" max="20" step="1" class="qty"></div>
+        <div class="rows" id="teBreak"></div>
+        <div class="tip" style="margin-top:6px">TE 每级约降低 4%（T1）生产时间；研究时间取自 SDE 工业数据。</div>
+      </div>
+    </div>
+
+    <!-- 拷贝 -->
+    <div class="actpane" id="pane-copy">
+      <div class="card">
+        <h3>蓝图拷贝 <span class="hint">复制限次蓝图 · 次数与时间</span></h3>
+        <div class="field" style="margin-top:6px">
+          <label>选择蓝图（拷贝）</label>
+          <div class="row">
+            <input type="text" id="cpSearch" placeholder="输入蓝图中文名…">
+            <button class="btn" id="cpSearchBtn">搜索蓝图</button>
+          </div>
+        </div>
+        <div id="cpList" class="searchlist" style="display:none"></div>
+        <div id="cpStatus" class="status"></div>
+        <div id="cpInfo"></div>
+        <div class="field" style="margin-top:10px"><label>拷贝次数</label><input type="number" id="cpRuns" value="1" min="1" step="1" class="qty"></div>
+        <div class="rows" id="cpBreak"></div>
+        <div class="tip" style="margin-top:6px">拷贝时间取自蓝图（SDE）；次数限制为原蓝图限次。费用＝拷贝服务费。</div>
+      </div>
+    </div>
+
+    <!-- 发明 -->
+    <div class="actpane" id="pane-invent">
+      <div class="card">
+        <h3>发明 <span class="hint">T1 蓝图 → T2 蓝图 · 成功率</span></h3>
+        <div class="field" style="margin-top:6px">
+          <label>选择 T1 蓝图（发明）</label>
+          <div class="row">
+            <input type="text" id="inSearch" placeholder="输入 T1 蓝图中文名…">
+            <button class="btn" id="inSearchBtn">搜索蓝图</button>
+          </div>
+        </div>
+        <div id="inList" class="searchlist" style="display:none"></div>
+        <div id="inStatus" class="status"></div>
+        <div id="inInfo"></div>
+        <div class="grid g2" style="margin-top:10px">
+          <div class="field"><label>发明次数</label><input type="number" id="inRuns" value="10" min="1" step="1" class="qty"></div>
+          <div class="field"><label>单次发明成本（ISK，含研究材料+解密符）</label><input type="number" id="inCostPer" placeholder="0" min="0" step="100000"></div>
+        </div>
+        <div class="grid g2">
+          <div class="field"><label>成功率（%）</label><input type="number" id="inSucc" value="30" min="1" max="100" step="1" class="qty"></div>
+          <div class="field"><label>T2 产物单价估值（ISK）</label><input type="number" id="inT2Price" placeholder="0" min="0" step="100000"></div>
+        </div>
+        <div class="rows" id="inBreak"></div>
+        <div class="tip" style="margin-top:6px">发明成功率取决于 T1 蓝图技能要求、发明技能、解密符；T2 产物估值按市场价。此处按成功率与次数估算投入与预期产出价值。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 视图：角色 ===== -->
+  <section id="view-char" class="view">
+    <div class="card">
+      <h3>角色与技能 <span class="hint">技能 → 费率 / 时间 / 提炼修正</span></h3>
+      <div class="grid g2">
+        <div class="field"><label>角色名</label><input type="text" id="chName" placeholder="角色名（可选，仅用于记录）"></div>
+        <div class="field"><label>服务器</label><input type="text" id="chServer" readonly></div>
+      </div>
+      <div class="skgrid" id="chSkills"></div>
+      <div class="card" style="margin-top:12px">
+        <h3 style="font-size:13px">角色数据库 <span class="hint">多角色档案 · 再次打开自动读取</span></h3>
+        <div class="row">
+          <select id="chProfileSel"><option value="">＋ 新建角色档案</option></select>
+          <button class="btn" id="chProfileLoad">载入档案</button>
+          <button class="btn ghost" id="chProfileDel">删除档案</button>
+        </div>
+        <div id="chProfileInfo" class="tip" style="margin-top:6px"></div>
+        <div class="tip" style="margin-top:4px">以「角色名 + 服务器」识别档案：输入不同的角色名保存即新建档案（原档案保留），同名同服再次保存则覆盖更新该档案。保存内容包括技能等级、官方接口角色 ID；下次打开或点「载入档案」即可一键还原。</div>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <h3 style="font-size:13px">官方公开接口自动读取（欧服） <span class="hint">需 SSO 令牌</span></h3>
+        <div class="grid g2">
+          <div class="field"><label>角色 ID（character_id）</label><input type="text" id="chEsiChar" placeholder="如 2112396661"></div>
+          <div class="field"><label>公开接口访问令牌（Bearer Token）</label><input type="text" id="chEsiToken" placeholder="SSO 授权后获取" style="font-family:var(--mono)"></div>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn" id="chEsi">调用官方公开接口读取角色技能</button>
+          <button class="btn ghost" id="chReset">重置</button>
+        </div>
+        <div id="chStatus" class="status"></div>
+        <div class="tip" style="margin-top:6px">国服（区服一/区服二）无官方角色公开接口，只能手动填写技能；欧服（区服三）可在官方 SSO 授权后取得 Bearer 令牌，本工具据此调用公开接口读取真实技能等级并回填（令牌仅用于本次请求，不入库）。</div>
+      </div>
+      <div class="row" style="margin-top:12px"><button class="btn primary" id="chSave">保存技能</button></div>
+      <div id="chEffect" class="cheffect"></div>
+      <div class="tip" style="margin-top:8px">技能等级影响计算：会计学→市场税、经纪人关系学→经纪费、工业理论/高级工业理论→制造时间、提炼学概论→提炼产出、批量生产学/实验室运作理论→并行槽位。</div>
+    </div>
+  </section>
+
+  <!-- ===== 视图：挂单核算 ===== -->
+  <section id="view-sell" class="view">
+    <div class="acttabs">
+      <button class="act on" data-act="smanu">制造挂单</button>
+      <button class="act" data-act="smining">挖矿挂单</button>
+      <button class="act" data-act="spi">种菜挂单</button>
+    </div>
+
+    <!-- 制造挂单 -->
+    <div class="actpane on" id="pane-smanu">
+      <div class="grid growh2">
+        <div class="card">
+          <h3>成本与目标利润 <span class="hint">挂单定价</span></h3>
+          <div class="field"><label>成本（ISK，可导入制造核算）</label>
+            <div class="row"><input type="number" id="sCost" placeholder="输入成本或导入"><button class="btn ghost" id="sImport">从制造成本导入</button></div>
+          </div>
+          <div class="field"><label>目标利润率（%）</label>
+            <div class="row"><input type="number" id="sMargin" min="0" max="100" step="0.5" value="15"><span class="tip" id="sMarginVal">15%</span></div>
+          </div>
+          <div class="field"><label>你的挂单价（ISK，用于按实际售价反算利润）</label><input type="number" id="sUserPrice" placeholder="可填建议价或你自己的定价"></div>
+          <div class="rows" id="sFeeList"></div>
+          <div class="row" style="margin-top:12px">
+            <button class="btn primary" id="sCalcPrice">计算建议挂单价</button>
+            <button class="btn ghost" id="sCalcProfit">按输入售价算利润</button>
+          </div>
+          <div id="sStatus" class="status"></div>
+          <div class="tip" style="margin-top:10px">经纪费率与市场税由「生产建筑」自动填入，可再手动微调。</div>
+        </div>
+        <div class="card">
+          <h3>挂单结果 <span class="hint">售价 → 净利润</span></h3>
+          <div id="sEmpty" class="tip">设置成本后，点击“计算建议挂单价”或“按输入售价算利润”。</div>
+          <div id="sResult" style="display:none">
+            <div class="rrow"><span class="k">建议挂单价</span><span class="v" id="sPrice">—</span></div>
+            <div class="rrow sub"><span class="k">扣除经纪费率后净收</span><span class="v" id="sNet">—</span></div>
+            <div class="rrow total"><span class="k">单件净利润</span><span class="v" id="sProfit">—</span></div>
+            <div class="rrow"><span class="k">成本利润率</span><span class="v" id="sMarginOut">—</span></div>
+            <div class="dl">
+              <div class="d"><div class="k">经纪费</div><div class="v" id="sBroker">0</div></div>
+              <div class="d"><div class="k">市场税</div><div class="v" id="sTax">0</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:14px">
+        <h3>买卖价差速算 <span class="hint">低买高卖 / 套利参考</span></h3>
+        <div class="grid g2">
+          <div class="field"><label>买入价（ISK）</label><input type="number" id="tBuy" placeholder="0"></div>
+          <div class="field"><label>卖出价（ISK）</label><input type="number" id="tSell" placeholder="0"></div>
+        </div>
+        <div class="row"><button class="btn" id="tCalc">计算差价利润</button></div>
+        <div id="tResult" class="status"></div>
+      </div>
+    </div>
+
+    <!-- 挖矿挂单 -->
+    <div class="actpane" id="pane-smining">
+      <div class="grid growh2">
+        <div class="card">
+          <h3>挖矿挂单 · 原矿石出售 <span class="hint">原矿行情 + 挖矿成本</span></h3>
+          <div class="field"><label>矿石（搜索选择，自动拉取原矿市价）</label>
+            <div class="row"><input type="text" id="mgSearch" placeholder="输入矿石中文名，如：灼热峻山岩…"><button class="btn" id="mgSearchBtn">选矿</button></div>
+            <div id="mgList" class="searchlist"></div>
+          </div>
+          <div id="mgOre" class="bpinfo" style="display:none"></div>
+          <div class="grid g2">
+            <div class="field"><label>矿石数量（单位）</label><input type="number" id="mgQty" value="100000" min="1" step="1000" class="qty"></div>
+            <div class="field"><label>挖矿总成本（ISK，含矿枪/耗材/燃料/往返）</label><input type="number" id="mgCost" value="0" min="0" step="1000000"></div>
+          </div>
+          <div class="row" style="margin-top:10px"><button class="btn" id="mgPull">拉取原矿卖单价</button></div>
+          <div class="rows" id="mgRawBreak"></div>
+        </div>
+        <div class="card">
+          <h3>提炼材料挂单 <span class="hint">矿石 → 精炼矿物出售</span></h3>
+          <div class="field"><label>精炼产出率（%，含提炼技能与设施）</label><input type="number" id="mgYield" value="80" step="0.5" class="qty"></div>
+          <div class="tip" style="margin:6px 0">每单位矿石提炼出的矿物（每单位产量 × 精炼率 × 矿量），单价可拉取或手填：</div>
+          <div id="mgRefRows"></div>
+          <div class="row" style="margin-top:10px"><button class="btn small" id="mgAddRow">＋ 添加矿物产出</button><button class="btn" id="mgPullRef">拉取矿物卖单价</button></div>
+          <div class="rows" id="mgRefBreak"></div>
+          <div class="tip" style="margin-top:8px">对比「原矿出售净收」与「提炼材料出售净收」，择高者挂单。精炼矿物自动产出数据需矿石再处理配方（SDE）补充，当前以手动填写为准。</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 种菜挂单 -->
+    <div class="actpane" id="pane-spi">
+      <div class="grid growh2">
+        <div class="card">
+          <h3>种菜挂单 · 行星产物出售 <span class="hint">行星加工 → 挂单利润</span></h3>
+          <div class="field"><label>选择行星加工配方</label><select id="spiSchematic"></select></div>
+          <div class="grid g2">
+            <div class="field"><label>运行周期数</label><input type="number" id="spiRuns" value="1" min="1" step="1" class="qty"></div>
+            <div class="field"><label>产品税率（%）</label><input type="number" id="spiTax" value="0" step="0.1" class="qty"></div>
+          </div>
+          <div id="spiInfo" class="bpinfo"></div>
+          <div class="bomhead"><span>输入材料</span><span>单价</span><span>数量</span><span></span></div>
+          <div id="spiMats"></div>
+          <div class="row" style="margin-top:12px">
+            <button class="btn" id="spiPull">拉取材料市价</button>
+            <button class="btn ghost" id="spiCopy">复制采购清单</button>
+          </div>
+          <div id="spiStatus2" class="status"></div>
+        </div>
+        <div class="card">
+          <h3>种菜挂单结果 <span class="hint">成本 → 产物出售利润</span></h3>
+          <div class="rrow sub" id="spiTimeRow"><span class="k">单周期运行时间</span><span class="v" id="spiTime">—</span></div>
+          <div class="rows" id="spiBreak"></div>
+          <div class="rrow total"><span class="k">单周期成本</span><span class="v" id="spiPerRun">0</span></div>
+          <div class="rrow"><span class="k">产物出售价值</span><span class="v" id="spiProdVal">0</span></div>
+          <div class="rrow total"><span class="k">单周期利润</span><span class="v" id="spiProfit">0</span></div>
+          <div class="tip" style="margin-top:8px">与「工业生产 → 行星工业」同口径：输入按交易区市价计成本，产物按买单最高价（出售可得价）估值，扣除产品税率后为挂单利润。</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 视图：角色信息 ===== -->
+</main>
+
+<script>
+"use strict";
+/* ============================================================
+   市场动态与制造核算台 —— 单文件应用
+   数据源：第三方市场数据服务
+     区服一 /api · 区服二 /infapi · 区服三 /tqapi
+   说明：第三方市场数据服务对任意跨域 Origin 不返回 CORS 头，因此须经
+   本地 server.js 代理访问（同源）。本工具仅展示与核算，非官方。
+   ============================================================ */
+
+/* ---------- 常量 ---------- */
+const SERVERS = {
+  serenity:   {label:"国服·区服一", prefix:"/api"},
+  shuguang:   {label:"国服·区服二", prefix:"/infapi"},
+  tranquility:{label:"欧服·区服三", prefix:"/tqapi"},
+};
+/* 中文别名（显示用）：枢纽星域 / 枢纽星系 */
+const REGION_CH = { 10000002:"吉他", 10000016:"索巴色基", 10000043:"阿玛尔", 10000032:"多迪西埃", 10000030:"伦斯", 10000042:"赫克" };
+const SYSTEM_CH = { 30000142:"吉他", 30001363:"索巴色基", 30002187:"阿玛尔", 30002659:"多迪西埃", 30002510:"伦斯", 30002053:"赫克" };
+/* 枢纽星域默认交易星系（其余星域默认整星域） */
+const REGION_DEFAULT_SYSTEM = { 10000002:30000142, 10000016:30001363, 10000043:30002187, 10000032:30002659, 10000030:30002510, 10000042:30002053 };
+/* 每服默认市场位置：区服一/区服三＝吉他星系，区服二＝索巴色基星系 */
+const SERVER_DEFAULT = { serenity:{region:10000002,system:30000142}, shuguang:{region:10000016,system:30001363}, tranquility:{region:10000002,system:30000142} };
+/* universe 数据（universe.json：星域/星座/星系+ID+sec），加载后填充 */
+let UNIV=null, REGION_MAP={}, SYSTEM_MAP={};
+/* 生产建筑预设：选择后自动填入 制造服务费/材料加成/经纪费率/市场交易税（数值可再手动微调） */
+const BUILDINGS = {
+  npc_hs:  { label:"高安 NPC 空间站", desc:"服务费按系统指数计，无结构加成",       broker:1.5, tax:1.5, jobFee:0,     matFee:0 },
+  npc_ls:  { label:"低安 NPC 空间站", desc:"服务费按系统指数计，无结构加成",       broker:1.5, tax:1.5, jobFee:0,     matFee:0 },
+  cit_00:  { label:"00 玩家堡垒（无加成）", desc:"00 主权空间站",                  broker:1.5, tax:1.5, jobFee:100000, matFee:0 },
+  cit_ind: { label:"玩家工业要塞（工业设施）", desc:"制造业设施，服务费偏高",       broker:1.5, tax:1.5, jobFee:500000, matFee:0 },
+  cit_eng: { label:"玩家综合设施（工程设施）", desc:"工程设施，服务费中等",         broker:1.5, tax:1.5, jobFee:250000, matFee:0 },
+};
+const DEF = { server:"serenity", regionId:10000002, systemId:30000142,
+  regionByServer:{serenity:10000002,shuguang:10000016,tranquility:10000002},
+  systemByServer:{serenity:30000142,shuguang:30001363,tranquility:30000142},
+  building:"npc_hs", jobFee:0, matFee:0, broker:1.5, tax:1.5, margin:15, basis:"ask",
+  skills:{ acct:0, broker_rel:0, ind:0, advind:0, massprod:0, refine:0, refining:0, lab:0, sci:0, metal:0, res:0 },
+  charName:"", esiCharId:"", charProfiles:[], currentCharId:"" };
+/* 角色技能（等级0-5）及其对计算的影响（依据官方技能效果） */
+const SKILLS = [
+  {id:"acct",       k:"会计学",       d:"市场交易税 -11%/级"},
+  {id:"broker_rel", k:"经纪人关系学", d:"经纪费 -5%/级"},
+  {id:"ind",        k:"工业理论",     d:"制造时间 -4%/级"},
+  {id:"advind",     k:"高级工业理论", d:"制造时间 -3%/级"},
+  {id:"massprod",   k:"批量生产学",   d:"同时制造槽 +1/级"},
+  {id:"refine",     k:"提炼学概论",   d:"精炼产出 +3%/级"},
+  {id:"refining",   k:"提炼效率理论", d:"精炼产出 +2%/级"},
+  {id:"lab",        k:"实验室运作理论", d:"研发/拷贝槽 +1/级"},
+  {id:"sci",        k:"科学原理",     d:"材料效率研究/拷贝/发明速度 +5%/级"},
+  {id:"metal",      k:"冶金学",       d:"材料效率研究速度 +5%/级"},
+  {id:"res",        k:"研究概论",     d:"时间效率研究速度 +5%/级"},
+];
+const LS_KEY = "eve_mk_state_v1";
+/* 技能 type_id（经官方公开接口 universe/ids 核验）：用于公开接口读取角色技能时按 skill_id 回填 */
+const SKILL_IDS = { acct:16622, broker_rel:3446, ind:3380, advind:3388, massprod:3387, refine:3389, refining:3385, lab:3406, sci:3402, metal:12109, res:3403 };
+const SKILL_EN_NAMES = { acct:"Accounting", broker_rel:"Broker Relations", ind:"Industry", advind:"Advanced Industry", massprod:"Mass Production", refine:"Reprocessing Efficiency", refining:"Refining", lab:"Laboratory Operation", sci:"Science", metal:"Metallurgy", res:"Research" };
+
+/* ---------- 用户数据持久化：写入程序目录「用户数据」文件夹（经 /userdata/<key>），取代浏览器 localStorage ----------
+   说明：本地服务速度快，初始用同步读取保证启动时数据就绪；之后写入即更新内存镜像并异步 PUT 到服务器。 */
+let __udCache = {};   // 内存镜像（键→JSON字符串），语义与 localStorage 一致
+function lsGet(key){
+  if(key in __udCache) return __udCache[key];
+  try{
+    const x=new XMLHttpRequest();
+    x.open("GET","/userdata/"+encodeURIComponent(key),false); // 同步读取（本地服务，极快）
+    x.timeout=8000; x.send(null);
+    if(x.status===200){ __udCache[key]=x.responseText; return x.responseText; }
+  }catch(e){}
+  __udCache[key]=null; return null;
+}
+function lsSet(key,val){
+  try{
+    __udCache[key]=val;
+    fetch("/userdata/"+encodeURIComponent(key),{method:"PUT",headers:{"Content-Type":"application/json"},body:val}).catch(()=>{});
+  }catch(e){}
+}
+function lsDel(key){
+  try{ delete __udCache[key]; fetch("/userdata/"+encodeURIComponent(key),{method:"PUT",headers:{"Content-Type":"application/json"},body:"{}"}).catch(()=>{}); }catch(e){}
+}
+
+/* ---------- 状态持久化 ---------- */
+function loadState(){ try{ const raw=lsGet(LS_KEY); if(raw){ return Object.assign({},DEF,JSON.parse(raw)); } }catch(e){} return Object.assign({},DEF); }
+let state = loadState();
+function saveState(){ try{ lsSet(LS_KEY, JSON.stringify(state)); }catch(e){} }
+
+/* ---------- 通用 ---------- */
+const $ = (s)=>document.querySelector(s);
+function fmt(n){ if(n==null||isNaN(n)) return "—"; return Number(n).toLocaleString("en-US",{maximumFractionDigits:2}); }
+function num(n){ return (isNaN(n)||n==null?"—":Number(n).toLocaleString("en-US",{minimumFractionDigits:2, maximumFractionDigits:2})); }
+function money(n){ return num(n)+" ISK"; }
+/* 角色技能影响（等级0-5） */
+function skill(id){ return Math.max(0, Math.min(5, +((state.skills&&state.skills[id])||0))); }
+function brokerMult(){ return Math.max(0, 1-0.05*skill("broker_rel")); }
+function taxMult(){ return Math.max(0, 1-0.11*skill("acct")); }
+function timeMult(){ return Math.max(0.2, (1-0.04*skill("ind"))*(1-0.03*skill("advind"))); }
+function refineBoostPct(){ return 3*skill("refine") + 2*skill("refining"); }
+function massSlots(){ return 1+skill("massprod"); }
+function labSlots(){ return 1+skill("lab"); }
+/* 研究速度系数：ME 研究=科学+冶金学；TE 研究=研究；拷贝/发明=科学 */
+function researchMult(act){
+  let f=1;
+  if(act===3) f=(1-0.05*skill("sci"))*(1-0.05*skill("metal"));
+  else if(act===4) f=(1-0.05*skill("res"));
+  else if(act===5||act===8) f=(1-0.05*skill("sci"));
+  return Math.max(0.2, f);
+}
+/* 时间效率 TE：每级 -4% 制造时间，仅用于生产时间参考展示 */
+function teMult(){ return Math.max(0.2, 1-0.04*(parseFloat($("#cTE")&&$("#cTE").value)||0)); }
+function fmtTime(sec){
+  if(sec==null||isNaN(sec)) return "—";
+  sec=Math.round(sec); const d=Math.floor(sec/86400), h=Math.floor(sec%86400/3600), m=Math.floor(sec%3600/60), s=sec%60;
+  const parts=[]; if(d) parts.push(d+"天"); if(h) parts.push(h+"时"); if(m) parts.push(m+"分"); if(s||!parts.length) parts.push(s+"秒");
+  return parts.join(" ");
+}
+/* 材料需求公式：基础量 ×(1+损耗率×(1−ME/(ME+1)))，ME 越高损耗越趋近 0 */
+function matEff(me, wf){ const f=me>0?1-me/(me+1):0; return 1+(wf/100)*f; }
+function effQty(baseQ, me, wf){ return Math.max(0, Math.ceil((parseFloat(baseQ)||0)*matEff(me,wf))); }
+function escapeHtml(s){ return String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function toast(msg,type){ const t=$("#toast"); t.textContent=msg; t.className="toast show"+(type==="err"?" err":(type==="ok"?" ok":"")); clearTimeout(t._tm); t._tm=setTimeout(()=>{t.className="toast";},2600); }
+function base(){ return SERVERS[state.server].prefix; }
+
+/* ---------- 市场数据客户端（经本地代理，同源） ---------- */
+function qs(params){ const parts=[]; for(const k in params){ const v=params[k]; if(Array.isArray(v)){ v.forEach(x=>parts.push(encodeURIComponent(k)+"="+encodeURIComponent(x))); } else parts.push(encodeURIComponent(k)+"="+encodeURIComponent(v)); } return parts.join("&"); }
+async function apiGet(path, params){
+  const url = base()+path+(params?"?"+qs(params):"");
+  const r = await fetch(url);
+  if(!r.ok){ let m=""; try{ m=await r.text(); }catch(e){} throw new Error("HTTP "+r.status+" "+m.slice(0,120)); }
+  return r.text();
+}
+async function apiPost(path, params){
+  const r = await fetch(base()+path,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded; charset=UTF-8"},body:qs(params)});
+  if(!r.ok){ let m=""; try{ m=await r.text(); }catch(e){} throw new Error("HTTP "+r.status+" "+m.slice(0,120)); }
+  return r.text();
+}
+function parseXML(t){ return new DOMParser().parseFromString(t,"application/xml"); }
+
+/* marketstat：批量价格统计（≤20 件）；regionId=星域，systemId=星系（有则加 usesystem，全局同步） */
+async function marketstat(typeIds, regionId, systemId){
+  const ids = Array.isArray(typeIds)? typeIds : [typeIds];
+  if(systemId===undefined) systemId=state.systemId;
+  const params={typeid:ids, regionlimit:regionId, minQ:0};
+  if(systemId) params.usesystem=systemId;
+  const xml = parseXML(await apiGet("/marketstat", params));
+  const out = {};
+  xml.querySelectorAll("type").forEach(t=>{
+    const id = +t.getAttribute("id");
+    const pick = (sel)=>{ const e=t.querySelector(sel); return {
+      volume:+e.querySelector("volume").textContent, avg:+e.querySelector("avg").textContent,
+      max:+e.querySelector("max").textContent, min:+e.querySelector("min").textContent,
+      median:+e.querySelector("median").textContent, percentile:+e.querySelector("percentile").textContent }; };
+    out[id] = {buy:pick("buy"), sell:pick("sell"), all:pick("all")};
+  });
+  return ids.length===1 ? out[ids[0]] : out;
+}
+/* quicklook：订单簿（含物品名）；regionId=星域，systemId=星系（有则加 usesystem） */
+async function quicklook(typeId, regionId, systemId){
+  if(systemId===undefined) systemId=state.systemId;
+  const params={typeid:typeId, regionlimit:regionId, setminQ:0};
+  if(systemId) params.usesystem=systemId;
+  const xml = parseXML(await apiGet("/quicklook", params));
+  const q = xml.querySelector("quicklook");
+  const name = (q&&q.querySelector("quicklook")&&q.querySelector("quicklook").textContent) || "未知物品";
+  const orders = (sel,isBuy)=>Array.from(xml.querySelectorAll(sel)).map(o=>({
+    station:(o.querySelector("station_name")?o.querySelector("station_name").textContent:o.querySelector("station").textContent),
+    price:+o.querySelector("price").textContent, vol_remain:+o.querySelector("vol_remain").textContent,
+    min_volume:+o.querySelector("min_volume").textContent, range:+o.querySelector("range").textContent,
+    is_buy:isBuy }));
+  return {name, sell:orders("sell_orders > order",false), buy:orders("buy_orders > order",true)};
+}
+/* searchname：本地中文名表匹配（离线，不用网络英文接口）返回 [{typeid,typename}]，按匹配度排序 */
+async function searchname(q){
+  const s=String(q||"").trim().toLowerCase();
+  if(!s) return [];
+  const names=ITEMNAMES_JSON||await loadItemNamesJson();
+  const out=[];
+  for(const k in names){
+    const nm=String(names[k]||"").trim();
+    if(!nm) continue;
+    const low=nm.toLowerCase();
+    if(low.includes(s)){
+      let score= low===s?3 : low.startsWith(s)?2 : 1;
+      out.push({typeid:+k, typename:nm, _s:score});
+    }
+  }
+  out.sort((a,b)=>(b._s-a._s)||(a.typename.length-b.typename.length));
+  return out.slice(0,50).map(x=>({typeid:x.typeid,typename:x.typename}));
+}
+/* 矿物收购参考：吉他基础矿物收购最高价 */
+async function evemon(){
+  const xml = parseXML(await apiGet("/evemon",null));
+  return Array.from(xml.querySelectorAll("mineral")).map(m=>({name:m.querySelector("name").textContent, price:+m.querySelector("price").textContent}));
+}
+function rangeLabel(r){
+  if(r===0) return "本空间站";
+  if(r===32767) return "本星系";
+  if(r===65535||r===65536) return "本星域";
+  return r+" 跳";
+}
+
+/* ---------- 顶部服务器 / 交易区 ---------- */
+/* 自定义深色下拉组件：makeCsel(el, scopeOpts, value, onchange, poolOpts)
+   scopeOpts：常规展开显示的列表（当前上级范围内）
+   poolOpts：搜索时的完整本级池（如全部星座/全部星系），缺省=scopeOpts
+   行为：同一时间只展开一个下拉；展开后顶部带搜索框，输入时按完整池过滤；
+   点击选项后回调 onchange(value)，由调用方负责上级联动。 */
+function makeCsel(el, scopeOpts, value, onchange, poolOpts){
+  el.innerHTML="<button type='button' class='csel-btn'><span class='csel-txt'></span><span class='caret'></span></button><div class='csel-menu'><input type='text' class='csel-search' placeholder='搜索本级全部项目…' spellcheck='false'><div class='csel-list'></div></div>";
+  const btn=el.querySelector(".csel-btn"), menu=el.querySelector(".csel-menu"), txt=el.querySelector(".csel-txt"), search=el.querySelector(".csel-search"), list=el.querySelector(".csel-list");
+  el._scope=scopeOpts; el._pool=poolOpts||scopeOpts; el._value=value;
+  function renderList(items){
+    const sel=String(el._value);
+    list.innerHTML=items.map(o=>"<div class='copt"+(String(o.value)===sel?" on":"")+"' data-v='"+escapeHtml(String(o.value))+"'>"+escapeHtml(o.label)+"</div>").join("");
+  }
+  function render(){
+    const q=search.value.trim().toLowerCase();
+    const items=q? el._pool.filter(o=>(o.label||"").toLowerCase().indexOf(q)>=0) : el._scope;
+    renderList(items);
+    const cur=(el._scope.concat(el._pool)).find(o=>String(o.value)===String(el._value));
+    txt.textContent=cur?cur.label:"—";
+  }
+  el._setValue=function(v){ el._value=v; render(); };
+  el._setScope=function(o){ el._scope=o; render(); };
+  el._setPool=function(p){ el._pool=p||el._scope; render(); };
+  btn.addEventListener("click", e=>{
+    e.stopPropagation();
+    const willOpen=!el.classList.contains("open");
+    document.querySelectorAll(".csel.open").forEach(x=>x.classList.remove("open"));
+    if(willOpen){ search.value=""; render(); el.classList.add("open"); }
+  });
+  search.addEventListener("click", e=>e.stopPropagation());
+  search.addEventListener("input", ()=>{ render(); if(!el.classList.contains("open")) el.classList.add("open"); });
+  search.addEventListener("keydown", e=>{ e.stopPropagation(); if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); const first=list.querySelector(".copt"); if(first) first.click(); } });
+  menu.addEventListener("click", e=>{ const c=e.target.closest(".copt"); if(!c) return; el._value=c.dataset.v; render(); onchange(c.dataset.v); el.classList.remove("open"); });
+  document.addEventListener("click", e=>{ if(!el.contains(e.target)) el.classList.remove("open"); });
+  render();
+  return el;
+}
+const SERVER_OPTS=[{value:"serenity",label:"国服·区服一"},{value:"shuguang",label:"国服·区服二"},{value:"tranquility",label:"欧服·区服三"}];
+/* 加载 universe（星域/星座/星系），填充 REGION_MAP / SYSTEM_MAP */
+async function loadUniverse(){
+  if(UNIV) return;
+  try{
+    const r=await fetch("/universe.json");
+    UNIV=await r.json();
+    UNIV.sysMap={}; UNIV.conMap={}; UNIV.regMap={};
+    (UNIV.systems||[]).forEach(s=>UNIV.sysMap[s.id]=s);
+    (UNIV.constellations||[]).forEach(c=>UNIV.conMap[c.id]=c);
+    (UNIV.regions||[]).forEach(g=>{
+      REGION_MAP[g.id]={ id:g.id, name:(g.zh||g.name), sys:REGION_DEFAULT_SYSTEM[g.id]||null };
+      UNIV.regMap[g.id]=g;
+    });
+    (UNIV.systems||[]).forEach(s=>SYSTEM_MAP[s.id]={ id:s.id, name:(s.zh||s.name) });
+  }catch(e){ console.error("universe load failed", e); UNIV=null; }
+}
+function regName(id){ return (REGION_MAP[id]&&REGION_MAP[id].name) || ("星域 "+id); }
+function sysLabel(id){ const s=SYSTEM_MAP[id]; return s? s.name : "—"; }
+function conName(id){ const c=UNIV&&UNIV.conMap[id]; return c? (c.zh||c.name) : "—"; }
+function curArea(){ return state.systemId? (sysLabel(state.systemId)+"（"+regName(state.regionId)+"）") : regName(state.regionId); }
+/* 三级级联：星域 → 星座 → 星系（全部可选；有星系则市场按 usesystem 查询） */
+function fillRegions(){
+  const rSel=$("#topRegion"), cSel=$("#topConstellation"), sSel=$("#topSystem");
+  if(!rSel||rSel._built||!UNIV) return; rSel._built=true;
+  const ropts=(UNIV.regions||[]).map(g=>({value:String(g.id), label:regName(g.id)}));
+  makeCsel(rSel, ropts, String(state.regionId), v=>{
+    state.regionId=+v;
+    state.regionByServer[state.server]=state.regionId;
+    state.systemId = REGION_DEFAULT_SYSTEM[state.regionId] || null;
+    if(state.systemId) state.systemByServer[state.server]=state.systemId; else delete state.systemByServer[state.server];
+    saveState();
+    rebuildConstellation();
+    rebuildSystem();
+    toast("交易区（星域）："+regName(state.regionId)+" · "+SERVERS[state.server].label);
+    resetMarketView(); dashRefresh();
+  });
+  rebuildConstellation();
+  rebuildSystem();
+}
+function rebuildConstellation(){
+  const cSel=$("#topConstellation"); if(!cSel||!UNIV) return;
+  const scope=(UNIV.constellations||[]).filter(c=>c.region===state.regionId).sort((a,b)=>(a.zh||a.name).localeCompare(b.zh||b.name,"zh"));
+  const pool=(UNIV.constellations||[]).slice().sort((a,b)=>(a.zh||a.name).localeCompare(b.zh||b.name,"zh")).map(c=>({value:String(c.id),label:(c.zh||c.name)}));
+  const opts=[{value:"",label:"全部星座"}].concat(scope.map(c=>({value:String(c.id),label:(c.zh||c.name)})));
+  let cur="";
+  if(state.systemId && UNIV.sysMap[state.systemId] && UNIV.sysMap[state.systemId].region===state.regionId)
+    cur=UNIV.sysMap[state.systemId].constellation;
+  state.constellationId=cur||null;
+  makeCsel(cSel, opts, String(cur), v=>{
+    state.constellationId=v? +v : null;
+    if(v){
+      const con=UNIV.conMap[v];
+      if(con && con.region!==state.regionId){
+        state.regionId=con.region;
+        state.regionByServer[state.server]=state.regionId;
+        const sys=state.systemId&&UNIV.sysMap[state.systemId];
+        if(!sys||sys.region!==state.regionId) state.systemId=null;
+        if(state.systemId) state.systemByServer[state.server]=state.systemId; else delete state.systemByServer[state.server];
+        if($("#topRegion")&&$("#topRegion")._setValue) $("#topRegion")._setValue(String(state.regionId));
+      }
+    }
+    saveState(); rebuildSystem();
+    toast("交易区（星座）："+(state.constellationId? conName(state.constellationId) : "全部星座")+" · "+regName(state.regionId)+" · "+SERVERS[state.server].label);
+    resetMarketView(); dashRefresh();
+  }, pool);
+  rebuildSystem();
+}
+function rebuildSystem(){
+  const sSel=$("#topSystem"); if(!sSel||!UNIV) return;
+  let scope=(UNIV.systems||[]).filter(s=>s.region===state.regionId);
+  if(state.constellationId) scope=scope.filter(s=>s.constellation===state.constellationId);
+  scope.sort((a,b)=>(a.zh||a.name).localeCompare(b.zh||b.name,"zh"));
+  const pool=(UNIV.systems||[]).slice().sort((a,b)=>(a.zh||a.name).localeCompare(b.zh||b.name,"zh")).map(s=>({value:String(s.id),label:sysLabel(s.id)}));
+  const opts=[{value:"",label:"全部星系（整个星域）"}].concat(scope.map(s=>({value:String(s.id),label:sysLabel(s.id)})));
+  let cur = (state.systemId && UNIV.sysMap[state.systemId] && UNIV.sysMap[state.systemId].region===state.regionId) ? String(state.systemId) : "";
+  if(cur && state.constellationId && UNIV.sysMap[+cur].constellation!==state.constellationId) cur="";
+  state.systemId=cur? +cur : null;
+  makeCsel(sSel, opts, cur, v=>{
+    state.systemId=v? +v : null;
+    if(v){
+      const sys=UNIV.sysMap[v];
+      if(sys && sys.region!==state.regionId){
+        state.regionId=sys.region;
+        state.regionByServer[state.server]=state.regionId;
+        state.constellationId=null;
+        if($("#topRegion")&&$("#topRegion")._setValue) $("#topRegion")._setValue(String(state.regionId));
+      }
+      if(sys && sys.constellation!==state.constellationId){
+        state.constellationId=sys.constellation||null;
+        if($("#topConstellation")&&$("#topConstellation")._setValue) $("#topConstellation")._setValue(String(state.constellationId||""));
+      }
+    }
+    state.systemByServer[state.server]=state.systemId||null;
+    saveState();
+    toast("交易区（星系）："+(state.systemId? sysLabel(state.systemId) : regName(state.regionId)+" 全星系")+" · "+SERVERS[state.server].label);
+    resetMarketView(); dashRefresh();
+  }, pool);
+}
+function applyTopPills(){
+  const s=$("#topServer"); if(s) s._setValue(state.server);
+  if($("#topRegion")&&$("#topRegion")._setValue) $("#topRegion")._setValue(String(state.regionId));
+  if($("#topConstellation")&&$("#topConstellation")._setValue) $("#topConstellation")._setValue(String(state.constellationId||""));
+  if($("#topSystem")&&$("#topSystem")._setValue) $("#topSystem")._setValue(String(state.systemId||""));
+}
+makeCsel($("#topServer"), SERVER_OPTS, state.server, v=>{
+  state.server=v;
+  const sv=SERVER_DEFAULT[state.server]||SERVER_DEFAULT.serenity;
+  state.regionByServer[state.server]=state.regionByServer[state.server]||sv.region;
+  state.systemByServer[state.server]=state.systemByServer[state.server]||sv.system;
+  state.regionId=state.regionByServer[state.server];
+  state.systemId=state.systemByServer[state.server]||null;
+  saveState(); applyTopPills();
+  toast("已切换服务器："+(SERVERS[state.server]?.label||state.server)+" · 默认交易区 "+(state.systemId? sysLabel(state.systemId):regName(state.regionId)), "ok");
+  resetMarketView(); dashRefresh();
+});
+
+/* ---------- 市场查询 ---------- */
+let mOType="sell", mTab="orders", mCurrentType=null;
+function resetMarketView(){
+  $("#mSearchList").innerHTML=""; $("#mDetail").style.display="none"; $("#mEmpty").style.display="block";
+  $("#mStatus").textContent="输入物品中文名开始查询市场价格。"; $("#mStatus").className="status";
+}
+async function doSearch(){
+  const q=$("#mSearch").value.trim(); const st=$("#mStatus");
+  if(!q){ st.className="status err"; st.textContent="请输入物品中文名。"; return; }
+  st.className="status"; st.textContent="正在搜索…";
+  try{
+    let list;
+    if(/^\d+$/.test(q)){ const nm=await nameOfMaterial(+q); list=[{typeid:+q, typename:nm||"未知物品"}]; }
+    else{ list = await searchname(q); }
+    if(!list.length){ st.className="status err"; st.textContent="未找到匹配物品（名称搜索为中文名）。"; $("#mSearchList").innerHTML=""; return; }
+    const box=$("#mSearchList"); box.innerHTML="";
+    list.slice(0,12).forEach(it=>{
+      const row=document.createElement("div"); row.className="sitem";
+      row.innerHTML="<span class='n'>"+escapeHtml(it.typename)+"</span>";
+      row.addEventListener("click", ()=>{ box.innerHTML=""; gotoItem(it.typeid, it.typename); });
+      box.appendChild(row);
+    });
+    st.className="status ok"; st.textContent="点选结果，目录自动定位并展示该物品行情。";
+  }catch(err){ st.className="status err"; st.textContent="查询失败："+err.message; $("#mSearchList").innerHTML=""; }
+}
+function gotoItem(id, name){ treeLocateType(id); selectItem(id, name); }
+function treeLocateType(tid){
+  const nodes=MKTREE&&MKTREE.nodes; if(!nodes) return;
+  let gid=null;
+  for(const k in nodes){ if(nodes[k].types&&nodes[k].types.indexOf(tid)>=0){ gid=k; break; } }
+  if(gid==null) return;
+  let cur=gid, path=[];
+  while(cur!=null){ path.push(cur); const p=(nodes[cur].parent==null?null:nodes[cur].parent); cur=p; }
+  path.reverse(); path.forEach(g=>{ treeOpen[g]=true; });
+  treeSelType=tid;
+  renderTree();
+  if(!(MKTREE.names[gid])) ensureGroupItemNames(gid);
+}
+async function selectItem(id, knownName){
+  try{
+    mCurrentType={id};
+    $("#mItemName").textContent = knownName || (await nameOfMaterial(id)) || "未知物品";
+    renderFavBtn();
+    $("#mItemMeta").textContent = SERVERS[state.server].label+" · "+curArea()+" · 第三方市场数据服务";
+    $("#mEmpty").style.display="none"; $("#mDetail").style.display="block";
+    $("#mStatus").textContent="正在加载 "+curArea()+" 市场数据…"; $("#mStatus").className="status";
+    await Promise.all([ loadStats(id), loadOrders(id) ]);
+    $("#mStatus").className="status ok";
+    $("#mStatus").textContent="数据源：第三方市场数据服务 · "+SERVERS[state.server].label+" · "+curArea();
+  }catch(err){ $("#mStatus").className="status err"; $("#mStatus").textContent="加载失败："+err.message; }
+}
+async function loadStats(typeId){
+  const s = await marketstat(typeId, state.regionId);
+  $("#kLowestSell").textContent = money(s.sell.min); $("#kLowestSellVol").textContent="卖方最低 · 量 "+fmt(s.sell.volume);
+  $("#kHighestBuy").textContent = money(s.buy.max);  $("#kHighestBuyVol").textContent="买方最高 · 量 "+fmt(s.buy.volume);
+  $("#kSellVol").textContent = fmt(s.sell.volume);   $("#kBuyVol").textContent = fmt(s.buy.volume);
+  const grid=$("#mStatGrid"); grid.innerHTML="";
+  [["卖方 sell",s.sell],["买方 buy",s.buy],["全部 all",s.all]].forEach(([h,d])=>{
+    const c=document.createElement("div"); c.className="statc";
+    c.innerHTML="<div class='h'><span>"+h+"</span></div>"+
+      "<div class='r'><span class='k'>均价</span><span class='v'>"+money(d.avg)+"</span></div>"+
+      "<div class='r'><span class='k'>最低</span><span class='v'>"+money(d.min)+"</span></div>"+
+      "<div class='r'><span class='k'>最高</span><span class='v'>"+money(d.max)+"</span></div>"+
+      "<div class='r'><span class='k'>中位数</span><span class='v'>"+money(d.median)+"</span></div>"+
+      "<div class='r'><span class='k'>90%分位</span><span class='v'>"+money(d.percentile)+"</span></div>"+
+      "<div class='r'><span class='k'>订单量</span><span class='v'>"+fmt(d.volume)+"</span></div>";
+    grid.appendChild(c);
+  });
+}
+async function loadOrders(typeId){
+  const q = await quicklook(typeId, state.regionId);
+  if(mCurrentType && !mCurrentType._name && q.name) { mCurrentType._name=q.name; $("#mItemName").textContent=q.name; }
+  renderOrders(q.sell, q.buy);
+}
+function renderOrders(sell, buy){
+  const tbody=$("#mOrdersBody"); tbody.innerHTML="";
+  // 按空间站聚合：卖侧取最低卖单价，买侧取最高买单价，并排列出
+  const st={};
+  const put=(arr,side)=>{ (arr||[]).forEach(o=>{ const k=o.station; if(k==null) return; st[k]=st[k]||{};
+    const cur=st[k][side];
+    if(!cur || (side==="sell" ? o.price<cur.price : o.price>cur.price)) st[k][side]={price:o.price,vol:o.vol_remain,range:o.range}; }); };
+  put(sell,"sell"); put(buy,"buy");
+  const keys=Object.keys(st);
+  if(!keys.length){ tbody.innerHTML="<tr><td colspan='7' style='color:var(--faint)'>该交易区无此类型订单</td></tr>"; return; }
+  keys.sort((a,b)=>a.localeCompare(b,"zh")).forEach(k=>{
+    const s=st[k].sell, b=st[k].buy;
+    const cell=o=> o ? ("<td class='"+(s&&s===o?"sell":"buy")+"'>"+num(o.price)+"</td><td class='vol'>"+fmt(o.vol)+"</td><td class='vol'>"+rangeLabel(o.range)+"</td>") : ("<td>—</td><td>—</td><td>—</td>");
+    const tr=document.createElement("tr");
+    tr.innerHTML="<td class='stn'>"+escapeHtml(k)+"</td>"+cell(s)+cell(b);
+    tbody.appendChild(tr);
+  });
+}
+document.querySelectorAll("[data-mtab]").forEach(b=>b.addEventListener("click", ()=>{
+  mTab=b.dataset.mtab;
+  document.querySelectorAll("[data-mtab]").forEach(x=>x.classList.toggle("on",x===b));
+  $("#mtOrders").style.display = mTab==="orders"?"block":"none";
+  $("#mtStats").style.display = mTab==="stats"?"block":"none";
+}));
+$("#mSearchBtn").addEventListener("click", doSearch);
+$("#mSearch").addEventListener("keydown", e=>{ if(e.key==="Enter") doSearch(); });
+
+/* ---------- 常用商品收藏 ---------- */
+let favs=[], favOpen=true; const FAV_KEY="eve_mk_fav_v1";
+function loadFavs(){ try{ favs=JSON.parse(lsGet(FAV_KEY))||[]; }catch(e){ favs=[]; } }
+function saveFavs(){ try{ lsSet(FAV_KEY, JSON.stringify(favs)); }catch(e){} }
+function isFav(id){ return favs.some(f=>String(f.id)===String(id)); }
+function renderFavBtn(){ const b=$("#mFavBtn"); if(!b) return; b.textContent=(mCurrentType&&isFav(mCurrentType.id))?"★ 已收藏":"☆ 收藏"; b.classList.toggle("on",!!(mCurrentType&&isFav(mCurrentType.id))); }
+function toggleFav(id,name){ const i=favs.findIndex(f=>String(f.id)===String(id)); if(i>=0) favs.splice(i,1); else favs.push({id:String(id),name:name||"未知物品"}); saveFavs(); renderTree(); renderFavBtn(); }
+$("#mFavBtn").addEventListener("click", ()=>{ if(mCurrentType) toggleFav(mCurrentType.id, $("#mItemName").textContent); });
+
+/* ---------- 制造成本（BOM） ---------- */
+let bom=[];
+const BOM_KEY="eve_mk_bom_v1";
+function loadBom(){ try{ bom=JSON.parse(lsGet(BOM_KEY))||[]; }catch(e){ bom=[]; } }
+function saveBom(){ try{ lsSet(BOM_KEY, JSON.stringify(bom)); }catch(e){} }
+function renderBom(){
+  const box=$("#bomRows"); box.innerHTML="";
+  if(!bom.length){ box.innerHTML="<div class='tip'>尚无材料。点击「＋ 添加」录入，或先选择蓝图自动填入。</div>"; computeCost(); return; }
+  const me=Math.max(0,parseFloat($("#cME").value)||0), wf=Math.max(0,parseFloat($("#cWF").value)||0);
+  bom.forEach((row,idx)=>{
+    const baseQ=parseFloat(row.qty)||0, eq=effQty(baseQ,me,wf);
+    const w=document.createElement("div"); w.className="bomrow m5";
+    w.innerHTML="<input type='text' data-idx='"+idx+"' data-f='name' value='"+escapeHtml(row.name)+"' placeholder='材料名'>"+
+      "<input class='sm' type='number' data-idx='"+idx+"' data-f='price' value='"+(row.price==null?"":row.price)+"' placeholder='单价'>"+
+      "<input class='sm' type='number' data-idx='"+idx+"' data-f='qty' value='"+(row.qty||"")+"' placeholder='数量' title='基础数量'>"+
+      (eq!==baseQ?"<span class='eq' title='按 ME 折算后的实际用量'>→"+eq+"</span>":"<span class='eq'></span>")+
+      "<button class='del' data-del='"+idx+"' aria-label='删除'>×</button>";
+    box.appendChild(w);
+  });
+  computeCost();
+}
+$("#bomRows").addEventListener("input", e=>{ const t=e.target; if(!t.dataset||t.dataset.f==null) return; const i=+t.dataset.idx; if(bom[i]) bom[i][t.dataset.f]=t.value; computeCost(); });
+$("#bomRows").addEventListener("click", e=>{ const d=e.target.dataset.del; if(d==null) return; bom.splice(+d,1); renderBom(); saveBom(); });
+$("#bomAdd").addEventListener("click", ()=>{ bom.push({name:"",id:"",qty:1,price:""}); renderBom(); });
+$("#bomClear").addEventListener("click", ()=>{ if(bom.length&&confirm("确认清空全部材料清单？")){ bom=[]; renderBom(); saveBom(); } });
+async function bomPull(mode){
+  for(const r of bom){ if(!r.id&&r.name&&String(r.name).trim()){ try{ const raw=await searchname(String(r.name).trim()); if(raw&&raw.length){ r.id=raw[0].typeid; if(!r.name) r.name=raw[0].typename; } }catch(e){} } }
+  const rows=bom.filter(r=>r.id&&String(r.id).trim()!=="");
+  if(!rows.length){ toast("请先填入材料中文名称以拉取市价","err"); return; }
+  const ids=rows.map(r=>+r.id).filter(x=>!isNaN(x));
+  const st=$("#bomStatus"); st.className="status"; st.textContent="正在拉取 "+rows.length+" 项材料市价…";
+  if(!ids.length){ st.className="status err"; st.textContent="未解析到材料，请填入中文名称后重试。"; return; }
+  try{
+    const res={};
+    for(let i=0;i<ids.length;i+=20){ Object.assign(res, await marketstat(ids.slice(i,i+20), state.regionId)); }
+    let ok=0, fail=0;
+    rows.forEach(r=>{ const d=res[r.id]; if(!d){ fail++; return; }
+      const p = mode==="bid" ? d.buy.max : d.sell.min;   // 买单价→买单最高价(回收)；卖单价→卖单最低价(买入成本)
+      if(p!=null&&p>0){ r.price=Math.round(p*100)/100; ok++; } else fail++; });
+    saveBom(); renderBom();
+    st.className=fail?"status err":"status ok";
+    st.textContent="完成：已按"+(mode==="bid"?"买单价（买单最高价·回收价）":"卖单价（卖单最低价·买入成本）")+"填入 "+ok+" 项"+(fail?("，"+fail+" 项无价（可手动填）"):"")+" · "+SERVERS[state.server].label;
+  }catch(err){ st.className="status err"; st.textContent="拉取失败："+err.message; }
+}
+$("#bomPullAsk").addEventListener("click", ()=>bomPull("ask"));
+$("#bomPullBid").addEventListener("click", ()=>bomPull("bid"));
+let currentBP=null;
+function computeCost(){
+  const me=Math.max(0,parseFloat($("#cME").value)||0), wf=Math.max(0,parseFloat($("#cWF").value)||0);
+  const runs=Math.max(1,parseInt($("#cRuns").value)||1);
+  const job=parseFloat($("#cJobFee").value)||0, mat=parseFloat($("#cMatFee").value)||0;
+  const qtyPerRun=(currentBP&&currentBP.productQty)||1;
+  let matPerRun=0;
+  bom.forEach(r=>{ matPerRun+=effQty(r.qty,me,wf)*(parseFloat(r.price)||0); });
+  const markup=matPerRun*(mat/100);
+  const matTotal=(matPerRun+markup)*runs;   // 全批次材料+加成
+  const totalAll=matTotal+job;              // 制造服务费＝作业固定费用，整单仅一次，不随批次翻倍
+  const perRun=runs?totalAll/runs:totalAll; // 单流程成本（服务费摊入每流程）
+  const perUnit=(qtyPerRun*runs)?totalAll/(qtyPerRun*runs):totalAll; // 单件成本（整单÷整单产出数）
+  $("#cMatTotal").textContent=money(matTotal);
+  $("#cFeeTotal").textContent=money(job);
+  $("#cPerRun").textContent=money(perRun);
+  $("#cTotal").textContent=money(perUnit);
+  $("#cTotalAll").textContent=money(totalAll);
+  $("#cBreak").innerHTML=
+    "<div class='rrow'><span class='k'>材料总成本（1流程，ME"+me+" 后）</span><span class='v'>"+money(matPerRun)+"</span></div>"+
+    "<div class='rrow sub'><span class='k'>材料加成 "+mat+"%（1流程）</span><span class='v'>"+(mat>=0?"+":"−")+money(Math.abs(markup))+"</span></div>"+
+    "<div class='rrow sub'><span class='k'>材料+加成 × "+runs+"批次</span><span class='v'>"+money(matTotal)+"</span></div>"+
+    "<div class='rrow sub'><span class='k'>制造服务费（作业一次）</span><span class='v'>+"+money(job)+"</span></div>";
+  // 生产时间：仅参考展示，不参与成本核算
+  const sdeT=(currentBP&&currentBP.bpId&&IND)?indT(currentBP.bpId,1):0;
+  const baseT=sdeT||(currentBP&&currentBP.time)||0;
+  if(baseT){ $("#cTime").textContent=fmtTime(baseT*timeMult()*teMult())+"（基础 "+fmtTime(baseT)+" × 技能系数 "+(timeMult()*100).toFixed(0)+"% × TE "+(teMult()*100).toFixed(0)+"%"+((sdeT||currentBP&&currentBP.time)?" · 批量生产槽 "+massSlots()+"":"")+"）"; }
+  else $("#cTime").textContent="—（无内置生产时间）";
+  return {total:perUnit, perRun, totalAll, matCost:matPerRun};
+}
+/* 制造核算下拉档位：ME(0-20) / 损耗率(常用档位) / 材料加成(含负值＝减料) */
+function populateCalcSelects(){
+  const setOpt=(id,vals,def,suffix)=>{ const sel=$("#"+id); if(!sel) return; sel.innerHTML=vals.map(v=>"<option value='"+v+"'"+(String(v)===String(def)?" selected":"")+">"+v+(suffix||"")+"</option>").join(""); };
+  setOpt("cME", Array.from({length:11},(_,i)=>i), 10, "");
+  setOpt("cWF", [0,1,2,3,5,10,15,20,25,30], 10, "%");
+  setOpt("cTE", Array.from({length:21},(_,i)=>i), 0, "");
+  setOpt("cMatFee", [-10,-8,-5,-4,-3,-2,-1,0,1,2,3,5,8,10], 0, "%");
+}
+populateCalcSelects();
+/* 生产时间持久化：用户手动填写的制造/研究时间按蓝图记忆，下次应用自动带回 */
+let TIME_MANUAL={}; const TM_KEY="eve_mk_bp_time_v1";
+function loadTM(){ try{ TIME_MANUAL=JSON.parse(lsGet(TM_KEY))||{}; }catch(e){ TIME_MANUAL={}; } }
+function saveTM(){ try{ lsSet(TM_KEY, JSON.stringify(TIME_MANUAL)); }catch(e){} }
+loadTM();
+["cME","cWF","cTE","cRuns","cJobFee","cMatFee"].forEach(id=>{ const el=$("#"+id); if(el) el.addEventListener("input", computeCost); });
+["cME","cWF","cTE","cMatFee"].forEach(id=>{ const el=$("#"+id); if(el) el.addEventListener("change", computeCost); });
+$("#cToSell").addEventListener("click", ()=>{ const {total}=computeCost(); $("#sCost").value=Math.round(total*100)/100; $("#sStatus").className="status ok"; $("#sStatus").textContent="已导入单件制造成本 "+money(total)+"，前往挂单核算。"; switchView("sell"); calcPrice(); });
+
+/* ---------- 蓝图选材（内置全量蓝图库 blueprints.json，取自游戏静态数据） ---------- */
+let BP_MAP=null;
+async function loadBP(){
+  if(BP_MAP) return BP_MAP;
+  if(location.protocol==="file:") throw new Error("file:// 无法加载蓝图库，请经本地 server.js 运行");
+  const r=await fetch("blueprints.json");
+  if(!r.ok) throw new Error("HTTP "+r.status);
+  BP_MAP=await r.json();
+  return BP_MAP;
+}
+/* 物品中文名缓存（跨页面复用，避免重复请求数据服务） */
+const NAME_CACHE_KEY="eve_mk_name_cache_v2";
+let nameCache=null;
+function loadNameCache(){ try{ nameCache=JSON.parse(localStorage.getItem(NAME_CACHE_KEY))||{}; }catch(e){ nameCache={}; } }
+function saveNameCache(){ try{ localStorage.setItem(NAME_CACHE_KEY, JSON.stringify(nameCache)); }catch(e){} }
+loadNameCache();
+async function nameOfMaterial(id){
+  const k=String(id);
+  // 1) 优先内置名称库 item_names.json（稳定，可离线，中文权威；避免旧英文缓存遮蔽）
+  try{
+    const names = ITEMNAMES_JSON || await loadItemNamesJson();
+    if(names && names[k]){ nameCache[k]=names[k]; saveNameCache(); return names[k]; }
+  }catch(e){}
+  // 2) 其次本地缓存
+  if(nameCache&&nameCache[k]) return nameCache[k];
+  // 3) 兜底：数据服务 quicklook（可能返回英文名）
+  try{ const q=await quicklook(id, state.regionId); const n=(q&&q.name)||"未知物品"; nameCache[k]=n; saveNameCache(); return n; }
+  catch(e){ return "未知物品"; }
+}
+/* 蓝图多选合并：勾选多张蓝图 → 汇总材料清单（同名材料跨蓝图数量相加） */
+let bpSel=new Set(), bpSelEntry=new Map(), bpSelName=new Map();
+function renderMergeBtn(){ const b=$("#bpMergeBtn"); if(!b) return; const n=bpSel.size; b.style.display=n?"inline-flex":"none"; const c=b.querySelector(".cnt"); if(c) c.textContent=n; }
+async function mergeSelectedBlueprints(){
+  if(!bpSel.size){ toast("请先勾选至少一张蓝图","err"); return; }
+  const st=$("#bpStatus"); st.className="status"; st.textContent="正在合并 "+bpSel.size+" 张蓝图的材料需求…";
+  const merged={}, prodNames={};
+  for(const bpId of bpSel){
+    const e=bpSelEntry.get(+bpId||bpId); if(!e) continue;
+    (e.materials||[]).forEach(([id,qty])=>{ const s=String(id); merged[s]=(merged[s]||0)+(parseFloat(qty)||0); });
+    try{ prodNames[bpId]=await nameOfMaterial(e.product); }catch(err){ prodNames[bpId]="产物"; }
+  }
+  bom=Object.keys(merged).map(id=>({id:String(id), name:"", qty:String(merged[id]), price:""}));
+  try{ await Promise.all(bom.map(async r=>{ r.name = await nameOfMaterial(+r.id); })); }catch(e){}
+  saveBom(); renderBom();
+  const lbl=[...bpSel].map(bpId=>{ const en=bpSelEntry.get(+bpId||bpId); return escapeHtml(bpSelName.get(+bpId||bpId)||"蓝图")+(en?("（"+(en.productQty||1)+"×"+escapeHtml(prodNames[bpId]||"产物")+"）"):""); }).join("、");
+  const bi=$("#bpInfo");
+  bi.innerHTML="已合并 <b>"+bpSel.size+"</b> 张蓝图："+lbl+"<br>合并后材料共 <b>"+bom.length+"</b> 项（同名材料数量已相加）。可点击「拉取材料市价」获取当前价格。";
+  bi.style.display="block";
+  st.className="status ok"; st.textContent="已合并 "+bom.length+" 项材料到 BOM。可点击「拉取材料市价」获取当前价格。";
+}
+$("#bpMergeBtn").addEventListener("click", mergeSelectedBlueprints);
+
+async function bpSearch(){
+  const q=$("#bpSearch").value.trim(); const st=$("#bpStatus"); const box=$("#bpList");
+  if(!q){ st.className="status err"; st.textContent="请输入蓝图中文名。"; return; }
+  st.className="status"; st.textContent="正在检索蓝图…"; box.innerHTML=""; bpSel.clear(); bpSelEntry.clear(); bpSelName.clear(); renderMergeBtn();
+  try{
+    const map=await loadBP();
+    let list=[];
+    if(/^\d+$/.test(q)){ if(map[q]) list=[{typeid:+q, typename:(await nameOfMaterial(+q))||"未知物品"}]; }
+    else{
+      const raw=await searchname(q);
+      list=raw.filter(it=>map[it.typeid]!==undefined);
+    }
+    if(!list.length){ st.className="status err"; st.textContent="未找到可制造蓝图（名称搜索为中文名，需命中 blueprints.json 中的可制造蓝图）。"; return; }
+    box.innerHTML=""; box.style.display="block";
+    const viewList=list.slice(0,20);
+    await Promise.all(viewList.map(async it=>{ const b=map[it.typeid]; it._p = b? (await nameOfMaterial(b.product)) : ""; }));
+    viewList.forEach(it=>{
+      const e=map[it.typeid];
+      const row=document.createElement("div"); row.className="sitem bpitem";
+      row.innerHTML="<label class='bpchk' title='勾选后用于合并'><input type='checkbox' data-bp='"+it.typeid+"'></label>"+
+        "<span class='n'>"+escapeHtml(it.typename)+"</span><span class='id'>材料 "+e.materials.length+" 项 · 产出 "+e.productQty+"×"+escapeHtml(it._p||"产物")+(e.time?" · 时间 "+fmtTime(e.time):"")+"</span>";
+      bpSelEntry.set(it.typeid,e); bpSelName.set(it.typeid,it.typename);
+      const chk=row.querySelector("[data-bp]");
+      chk.addEventListener("change", ()=>{ if(chk.checked) bpSel.add(String(it.typeid)); else bpSel.delete(String(it.typeid)); renderMergeBtn(); });
+      row.addEventListener("click", (ev)=>{ if(ev.target.closest(".bpchk")) return; applyBlueprint(it.typeid, it.typename, e); });
+      box.appendChild(row);
+    });
+    renderMergeBtn();
+    st.className="status ok"; st.textContent="勾选多张蓝图可「合并所选蓝图」汇总材料；单击某一行则单独应用该蓝图并填入材料。";
+  }catch(err){ st.className="status err"; st.textContent="检索失败："+err.message; }
+}
+async function applyBlueprint(bpId, bpName, entry){
+  const st=$("#bpStatus");
+  const mats=entry.materials||[];
+  if(!mats.length){ st.className="status err"; st.textContent="该蓝图无制造材料（可能为不可直接制造/克隆类蓝图），请手动添加。"; return; }
+  currentBP=entry; currentBP.bpId=bpId;
+  if(TIME_MANUAL[String(bpId)]){ currentBP.time=TIME_MANUAL[String(bpId)]; }
+  else if(IND){ const t=indT(bpId,1); if(t) currentBP.time=t; } // 制造耗时优先取 SDE 工业数据，其次用户记忆
+  if($("#cTimeManual")) $("#cTimeManual").value=currentBP.time||"";
+  st.className="status"; st.textContent="正在应用蓝图「"+bpName+"」材料，解析材料名…";
+  bom=mats.map(([id,qty])=>({id:String(id), name:"", qty:String(qty), price:""}));
+  try{ await Promise.all(bom.map(async r=>{ r.name = await nameOfMaterial(+r.id); })); }
+  catch(e){ /* 部分名称解析失败由下方状态提示 */ }
+  saveBom(); renderBom();
+  const prodName=await nameOfMaterial(entry.product);
+  const prod=(entry.productQty||1)+"×"+prodName;
+  const t=currentBP.time?("基础生产时间 "+fmtTime(currentBP.time)+"（SDE）"):"生产时间未内置（仅参考展示，不计入成本）";
+  $("#bpInfo").innerHTML="蓝图 <b>"+escapeHtml(bpName)+"</b> · 1流程产出 <b>"+escapeHtml(prod)+"</b> · "+t+"<br>材料 <b>"+bom.length+"</b> 项，随研究进度 ME 折算用量（BOM 中→为折算后数量）。";
+  $("#bpInfo").style.display="block";
+  st.className="status ok";
+  st.textContent="已填入「"+bpName+"」的 "+bom.length+" 项材料。点击「拉取材料市价」获取当前价格。";
+}
+$("#bpSearchBtn").addEventListener("click", bpSearch);
+$("#bpSearch").addEventListener("keydown", e=>{ if(e.key==="Enter") bpSearch(); });
+
+/* ---------- 生产制造/工业：活动页签（按各自容器作用域） ---------- */
+document.querySelectorAll(".acttabs").forEach(tabs=>{
+  const btns=tabs.querySelectorAll(".act");
+  btns.forEach(b=>b.addEventListener("click", ()=>{
+    btns.forEach(x=>x.classList.toggle("on", x===b));
+    const scope=tabs.closest(".view");
+    scope.querySelectorAll(".actpane").forEach(p=>p.classList.toggle("on", p.id==="pane-"+b.dataset.act));
+  }));
+});
+
+/* ---------- 提炼（手动矿物明细 + 技能/设施精炼率） ---------- */
+let rMats=[]; const RKEY="eve_mk_refine_v1";
+function loadR(){ try{ rMats=JSON.parse(lsGet(RKEY))||[]; }catch(e){ rMats=[]; } }
+function saveR(){ try{ lsSet(RKEY, JSON.stringify(rMats)); }catch(e){} }
+function refineRate(){ return Math.min(100, Math.max(0, (parseFloat($("#rYield").value)||100)+refineBoostPct())); }
+function renderRefine(){
+  const box=$("#rBreak"); if(!box) return;
+  const qty=Math.max(0,parseFloat($("#rQty").value)||0), yieldPct=refineRate();
+  let rows="<div class='rrow sub'><span class='k'>精炼产出率 "+yieldPct.toFixed(1)+"%（技能 +"+refineBoostPct()+"%） · 矿量 "+fmt(qty)+"</span></div>";
+  let total=0;
+  rMats.forEach((m,i)=>{
+    const out=qty*(parseFloat(m.qty)||0)*yieldPct/100, val=out*(parseFloat(m.price)||0); total+=val;
+    rows+="<div class='rrow'><span class='k'><input class='sm' data-r='"+i+"' data-f='name' value='"+escapeHtml(m.name)+"' placeholder='矿物名' style='width:110px'> "+
+      "<input class='sm' data-r='"+i+"' data-f='qty' value='"+(m.qty||"")+"' placeholder='每单位' style='width:70px'> "+
+      "<input class='sm' data-r='"+i+"' data-f='price' value='"+(m.price||"")+"' placeholder='单价' style='width:80px'></span>"+
+      "<span class='v'>产出 "+fmt(out)+" · "+money(val)+" <button class='del' data-rdel='"+i+"' aria-label='删除'>×</button></span></div>";
+  });
+  box.innerHTML=rows+(rMats.length?"":"<div class='tip'>点击「＋ 添加矿物产出」录入提炼所得矿物。</div>");
+  $("#rTotal").textContent=money(total);
+}
+function rAdd(){ rMats.push({name:"",qty:0,price:""}); renderRefine(); saveR(); }
+$("#rBreak").addEventListener("input", e=>{ const t=e.target; if(t.dataset.r==null||t.dataset.f==null) return; rMats[+t.dataset.r][t.dataset.f]=t.value; renderRefine(); saveR(); });
+$("#rBreak").addEventListener("click", e=>{ const i=e.target.dataset.rdel; if(i==null) return; rMats.splice(+i,1); renderRefine(); saveR(); });
+$("#rAddBtn").addEventListener("click", rAdd);
+["rYield","rQty"].forEach(id=>$("#"+id).addEventListener("input", renderRefine));
+
+/* ---------- 研发（ME/TE 研究时间 + 服务费） ---------- */
+/* 剪贴板助手 */
+function copyText(txt,msg){ const done=()=>toast(msg||"已复制","ok"), fail=()=>toast("复制失败","err");
+  if(navigator.clipboard&&window.isSecureContext){ navigator.clipboard.writeText(txt).then(done).catch(fail); return; }
+  const ta=document.createElement("textarea"); ta.value=txt; ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta); ta.select();
+  try{ document.execCommand("copy"); done(); }catch(e){ fail(); } document.body.removeChild(ta); }
+
+/* ---------- 工业数据（industry.json：制造/研究/拷贝/发明/反应 耗时与物料） ---------- */
+let IND=null;
+async function loadIndustry(){ if(IND) return IND; const r=await fetch("industry.json"); if(!r.ok) throw new Error("HTTP "+r.status); IND=await r.json(); return IND; }
+function indT(bp,act){ return (IND&&IND.times&&IND.times[bp]&&IND.times[bp][act])||0; }
+function indM(bp,act){ return (IND&&IND.mats&&IND.mats[bp]&&IND.mats[bp][act])||[]; }
+function indP(bp,act){ return (IND&&IND.prods&&IND.prods[bp]&&IND.prods[bp][act])||[]; }
+
+/* ===== 反应（activity 11，原材料加工） ===== */
+let lastReaction=null; const reMatP={}, reProdP={};
+async function reSearch(){
+  const q=$("#reSearch").value.trim(), st=$("#reStatus"), box=$("#reList");
+  if(!q){ st.className="status err"; st.textContent="请输入反应产物/蓝图中文名。"; box.style.display="none"; return; }
+  st.className="status"; st.textContent="正在检索反应蓝图…"; box.innerHTML=""; box.style.display="none";
+  try{
+    await loadIndustry(); let list=[];
+    if(/^\d+$/.test(q)){ const id=+q; if(indT(id,11)) list=[{typeid:id,typename:(await nameOfMaterial(id))||"未知物品"}]; }
+    else{ const raw=await searchname(q); list=raw.filter(it=>indT(it.typeid,11)); }
+    if(!list.length){ st.className="status err"; st.textContent="未找到反应蓝图（需命中 SDE 反应配方，如复杂反应、聚合物）。"; box.style.display="none"; return; }
+    box.innerHTML=""; box.style.display="block";
+    const v=list.slice(0,15);
+    await Promise.all(v.map(async it=>{ const ps=indP(it.typeid,11); let lbl="产物"; if(ps.length){ const nm=await nameOfMaterial(ps[0][0]); lbl=nm+(ps.length>1?" 等"+ps.length+"项":""); } it._p=lbl; }));
+    v.forEach(it=>{ const row=document.createElement("div"); row.className="sitem";
+      row.innerHTML="<span class='n'>"+escapeHtml(it.typename)+"</span><span class='id'>→ "+escapeHtml(it._p)+"</span>";
+      row.addEventListener("click", ()=>{ lastReaction={bpId:it.typeid,name:it.typename}; renderReaction(); });
+      box.appendChild(row); });
+    st.className="status ok"; st.textContent="点击结果应用反应配方。";
+  }catch(err){ st.className="status err"; st.textContent="检索失败："+err.message; }
+}
+$("#reSearchBtn").addEventListener("click", reSearch);
+$("#reSearch").addEventListener("keydown", e=>{ if(e.key==="Enter") reSearch(); });
+async function renderReaction(){
+  if(!lastReaction) return;
+  const bp=lastReaction.bpId, mats=indM(bp,11), prods=indP(bp,11), t=indT(bp,11);
+  let ptxt="—"; if(prods.length){ ptxt=(await Promise.all(prods.map(async p=>{ const n=await nameOfMaterial(p[0]); return p[1]+"×"+n; }))).join("、"); }
+  $("#reInfo").innerHTML="反应蓝图 <b>"+escapeHtml(lastReaction.name)+"</b> · 1流程产出 <b>"+escapeHtml(ptxt)+"</b><br>单流程反应时间：<b>"+(t?fmtTime(t):"—")+"</b>（技能修正后 "+fmtTime(t&&t*timeMult())+"）";
+  $("#reInfo").style.display="block";
+  $("#reTime").textContent=(t?fmtTime(t*timeMult())+"（基础 "+fmtTime(t)+"）":"—");
+  $("#reMats").innerHTML=mats.map((m,i)=>
+    "<div class='bomrow'><span class='nm' id='reN"+i+"'>"+m[0]+"</span>"+
+    "<span class='pr'><input class='sm' id='reP"+i+"' value='"+(reMatP[m[0]]||"")+"' placeholder='单价' style='width:110px'></span>"+
+    "<span class='qt'>×"+m[1]+"</span></div>").join("")||"<div class='tip'>无材料需求</div>";
+  await Promise.all(mats.map(async (m,i)=>{ const el=$("#reN"+i); if(el) el.textContent=await nameOfMaterial(m[0]); }));
+  $("#reBreak").innerHTML=(prods.length?prods.map((p,i)=>"<div class='rrow'><span class='k' id='rePN"+i+"'>"+p[0]+"</span><span class='v' id='rePV"+i+"'>"+money(reProdP[p[0]]||0)+" /件</span></div>").join(""):"")+
+    "<div class='rrow total'><span class='k'>单流程反应成本</span><span class='v' id='rePerRun'>0</span></div>"+
+    "<div class='rrow'><span class='k'>单流程产物价值</span><span class='v' id='reProdVal'>0</span></div>"+
+    "<div class='rrow total'><span class='k'>单流程利润</span><span class='v' id='reProfit'>0</span></div>";
+  await Promise.all(prods.map(async (p,i)=>{ const el=$("#rePN"+i); if(el) el.textContent=await nameOfMaterial(p[0]); }));
+  $("#reStatus2").className="status"; $("#reStatus2").textContent="点「拉取材料市价」获取材料价与产物估值。";
+}
+async function rePull(){
+  if(!lastReaction) return;
+  const mats=indM(lastReaction.bpId,11), prods=indP(lastReaction.bpId,11);
+  const ids=[...new Set(mats.concat(prods).map(m=>m[0]))]; if(!ids.length) return;
+  const res=await marketstat(ids, state.regionId);
+  mats.forEach((m,idx)=>{ const d=res[m[0]]; const p=d&&(d.sell.min||d.buy.max); if(p!==undefined){ reMatP[m[0]]=p; const el=$("#reP"+idx); if(el) el.value=p; } });
+  prods.forEach(m=>{ const d=res[m[0]]; reProdP[m[0]]=d? (d.buy.max||d.sell.min||0):0; });
+  computeReaction();
+  $("#reStatus2").className="status ok"; $("#reStatus2").textContent="已拉取材料市价（"+ids.length+" 项），产物按买单最高价估值。";
+}
+$("#rePull").addEventListener("click", rePull);
+function computeReaction(){
+  if(!lastReaction) return;
+  const runs=Math.max(1,parseInt($("#reRuns").value)||1);
+  const mats=indM(lastReaction.bpId,11), prods=indP(lastReaction.bpId,11);
+  let cost=0; mats.forEach((m,i)=>{ const p=parseFloat(($("#reP"+i)&&$("#reP"+i).value)||0)||reMatP[m[0]]||0; cost+=p*m[1]; }); cost*=runs;
+  let pv=0; prods.forEach(m=>{ pv+=m[1]*(reProdP[m[0]]||0); }); pv*=runs;
+  $("#rePerRun").textContent=money(cost); $("#reProdVal").textContent=money(pv);
+  const el=$("#reProfit"); el.textContent=money(pv-cost); el.style.color=(pv>=cost?"var(--pos)":"var(--neg)");
+}
+$("#reRuns").addEventListener("input", computeReaction);
+$("#reMats").addEventListener("input", e=>{ if(e.target&&/^reP/.test(e.target.id||"")) computeReaction(); });
+function reCopy(){
+  if(!lastReaction) return;
+  const mats=indM(lastReaction.bpId,11);
+  const lines=mats.map((m,i)=>{ const n=($("#reN"+i)&&$("#reN"+i).textContent)||m[0]; return "("+m[1]+")x "+n; });
+  copyText(lines.join("\n"),"反应采购清单已复制，可粘贴进游戏采购。");
+}
+$("#reCopy").addEventListener("click", reCopy);
+
+/* ===== 材料效率研究 ME(3) / 时间效率研究 TE(4) / 发明(8) ===== */
+const RACT={ me:{act:3,s:"#meSearch",l:"#meList",st:"#meStatus",info:"#meInfo",br:"#meBreak"},
+  te:{act:4,s:"#teSearch",l:"#teList",st:"#teStatus",info:"#teInfo",br:"#teBreak"},
+  invent:{act:8,s:"#inSearch",l:"#inList",st:"#inStatus",info:"#inInfo",br:"#inBreak"} };
+async function researchSearch(key){
+  const cfg=RACT[key], q=$(cfg.s).value.trim(), st=$(cfg.st), box=$(cfg.l);
+  if(!q){ st.className="status err"; st.textContent="请输入蓝图中文名。"; return; }
+  st.className="status"; st.textContent="正在检索蓝图…"; box.innerHTML="";
+  try{
+    await loadIndustry(); let list=[];
+    if(/^\d+$/.test(q)){ const id=+q; if(indT(id,cfg.act)) list=[{typeid:id,typename:(await nameOfMaterial(id))||"未知物品"}]; }
+    else{ const raw=await searchname(q); list=raw.filter(it=>indT(it.typeid,cfg.act)); }
+    if(!list.length){ st.className="status err"; st.textContent="未找到对应活动蓝图（需命中 SDE 工业数据）。"; return; }
+    box.innerHTML=""; box.style.display="block";
+    const v=list.slice(0,15);
+    await Promise.all(v.map(async it=>{ const ps=indP(it.typeid,cfg.act); it._p= ps.length? await nameOfMaterial(ps[0][0]) : ""; }));
+    v.forEach(it=>{ const row=document.createElement("div"); row.className="sitem";
+      row.innerHTML="<span class='n'>"+escapeHtml(it.typename)+"</span><span class='id'>"+fmtTime(indT(it.typeid,cfg.act))+" · "+escapeHtml(it._p||"产物")+"</span>";
+      row.addEventListener("click", ()=>applyResearchAct(key, it.typeid, it.typename));
+      box.appendChild(row); });
+    st.className="status ok"; st.textContent="点击结果应用研究信息。";
+  }catch(err){ st.className="status err"; st.textContent="检索失败："+err.message; }
+}
+["me","te","invent"].forEach(k=>{ $("#"+RACT[k].s.slice(1)+"Btn").addEventListener("click", ()=>researchSearch(k)); $("#"+RACT[k].s.slice(1)).addEventListener("keydown", e=>{ if(e.key==="Enter") researchSearch(k); }); });
+function applyResearchAct(key, bpId, bpName){
+  const cfg=RACT[key], act=cfg.act, t=indT(bpId,act), mats=indM(bpId,act);
+  let info="蓝图 <b>"+escapeHtml(bpName)+"</b> · 耗时 <b>"+(t?fmtTime(t):"—")+"</b>（技能修正后 "+fmtTime(t&&t*researchMult(act))+"）· 实验室并行槽 <b>"+labSlots()+"</b>";
+  if(key==="me"||key==="te"){ const lv=parseInt(($("#"+key+"Level").value)||0); const red=key==="me"?(lv*2):(lv*4); info+="<br>研究到 <b>"+lv+"</b> 级：材料需求 "+(key==="me"?("约 -"+red+"%"):"—")+(key==="te"?("生产时间 约 -"+red+"%"):"—"); }
+  if(mats.length) info+="<br>研究材料 <b>"+mats.length+"</b> 项（下方自动拉取市价）。";
+  $(cfg.info).innerHTML=info;
+  $(cfg.br).innerHTML="<div class='rrow'><span class='k'>研究服务费（ISK，按生产建筑）</span><span class='v'><input type='number' class='resFee' value='0' min='0' step='1000' style='width:120px'></span></div>"+
+    "<div class='rrow'><span class='k'>服务费合计</span><span class='v' class='resCost'>0</span></div>"+
+    "<div class='rrow sub'><span class='k'>研究材料合计</span><span class='v' class='resMatsCost'>—</span></div>";
+  const fee=$(cfg.br).querySelector(".resFee"), cost=$(cfg.br).querySelector(".resCost");
+  fee.addEventListener("input", ()=>cost.textContent=money(parseFloat(fee.value)||0));
+  if(mats.length){ marketstat(mats.map(m=>m[0]), state.regionId).then(res=>{ let s=0; mats.forEach(m=>{ const d=res[m[0]]; const p=d&&(d.sell.min||0); if(p) s+=p*m[1]; }); const c=$(cfg.br).querySelector(".resMatsCost"); if(c) c.textContent=money(s)+"（"+mats.length+" 项）"; }).catch(()=>{}); }
+  if(key==="invent") inventCalc();
+  $(cfg.st).className="status ok"; $(cfg.st).textContent="已选「"+bpName+"」。";
+}
+/* 发明：次数 × 成本，按成功率估 T2 产出价值 */
+function inventCalc(){
+  const runs=Math.max(1,parseInt($("#inRuns").value)||1), costPer=parseFloat($("#inCostPer").value)||0,
+    succ=Math.max(0,Math.min(100,parseFloat($("#inSucc").value)||30))/100, t2=parseFloat($("#inT2Price").value)||0;
+  const totalCost=runs*costPer, exp=Math.round(runs*succ), expVal=exp*t2, net=expVal-totalCost;
+  $("#inBreak").innerHTML=
+    "<div class='rrow'><span class='k'>总发明成本</span><span class='v'>"+money(totalCost)+"</span></div>"+
+    "<div class='rrow'><span class='k'>预期成功数（"+runs+" × "+Math.round(succ*100)+"%）</span><span class='v'>"+exp+" 次</span></div>"+
+    "<div class='rrow'><span class='k'>预期 T2 产出价值</span><span class='v'>"+money(expVal)+"</span></div>"+
+    "<div class='rrow total'><span class='k'>预期净利润</span><span class='v' style='color:"+(net>=0?"var(--pos)":"var(--neg)")+"'>"+money(net)+"</span></div>";
+}
+["inRuns","inCostPer","inSucc","inT2Price","meLevel","teLevel"].forEach(id=>{ const el=$("#"+id); if(el) el.addEventListener("input", ()=>{ if(id==="inRuns"||id==="inCostPer"||id==="inSucc"||id==="inT2Price") inventCalc(); }); });
+/* 制造批量采购剪贴板 */
+function bomClip(){
+  if(!bom.length){ toast("BOM 为空，先选择蓝图或添加材料","err"); return; }
+  const lines=bom.map(r=>{ const nm=r.name||r.id; const q=parseInt(r.qty)||0; return "("+q+")x "+nm+(q?"":"（无数量）"); });
+  copyText(lines.join("\n"),"制造采购清单已复制（物品×数量），可粘贴进游戏批量采购。");
+}
+$("#bomClip").addEventListener("click", bomClip);
+
+/* ---------- 拷贝（时间 + 次数 + 服务费） ---------- */
+let lastCopy=null;
+async function cpSearch(){
+  const q=$("#cpSearch").value.trim(), st=$("#cpStatus"), box=$("#cpList");
+  if(!q){ st.className="status err"; st.textContent="请输入蓝图中文名。"; return; }
+  st.className="status"; st.textContent="正在检索蓝图…"; box.innerHTML="";
+  try{
+    await loadIndustry();
+    const map=await loadBP(); let list=[];
+    if(/^\d+$/.test(q)){ if(map[q]) list=[{typeid:+q, typename:(await nameOfMaterial(+q))||"未知物品"}]; }
+    else{ const raw=await searchname(q); list=raw.filter(it=>map[it.typeid]!==undefined); }
+    if(!list.length){ st.className="status err"; st.textContent="未找到蓝图。"; return; }
+    box.innerHTML=""; box.style.display="block";
+    const clist=list.slice(0,12);
+    await Promise.all(clist.map(async it=>{ const b=map[it.typeid]; it._p = b? (await nameOfMaterial(b.product)) : ""; }));
+    clist.forEach(it=>{ const e=map[it.typeid];
+      const row=document.createElement("div"); row.className="sitem";
+      row.innerHTML="<span class='n'>"+escapeHtml(it.typename)+"</span><span class='id'>产物 "+e.productQty+"×"+escapeHtml(it._p||"产物")+"</span>";
+      row.addEventListener("click", ()=>{ lastCopy={bpId:it.typeid, name:it.typename, entry:e}; applyCopy(); });
+      box.appendChild(row);
+    });
+  }catch(err){ st.className="status err"; st.textContent="检索失败："+err.message; }
+}
+function applyCopy(){
+  if(!lastCopy) return;
+  const {name, entry}=lastCopy;
+  const cT= (IND&&indT(lastCopy.bpId||0,5)) ? indT(lastCopy.bpId,5) : (entry.copyTime||0);
+  $("#cpInfo").innerHTML="蓝图 <b>"+escapeHtml(name)+"</b> · 拷贝时间 <b>"+(cT?fmtTime(cT):"—")+"</b>（修正后 "+fmtTime(cT&&cT*researchMult(5))+"）· 实验室并行槽 <b>"+labSlots()+"</b>";
+  $("#cpBreak").innerHTML="<div class='rrow'><span class='k'>拷贝服务费（ISK，按生产建筑）</span><span class='v'><input type='number' id='cpFee' value='0' min='0' step='1000' style='width:120px'></span></div>"+
+    "<div class='rrow'><span class='k'>拷贝总费用（×<span id='cpRunsShown'>"+($("#cpRuns").value||1)+"</span> 次）</span><span class='v' id='cpCost'>0</span></div>";
+  copyCalc();
+}
+function copyCalc(){ const f=parseFloat($("#cpFee").value)||0, runs=Math.max(1,parseInt($("#cpRuns").value)||1); if($("#cpCost")) $("#cpCost").textContent=money(f*runs); const sh=$("#cpRunsShown"); if(sh) sh.textContent=runs; }
+$("#cpSearchBtn").addEventListener("click", cpSearch);
+$("#cpSearch").addEventListener("keydown", e=>{ if(e.key==="Enter") cpSearch(); });
+$("#cpRuns").addEventListener("input", ()=>{ copyCalc(); });
+
+/* ---------- 行星工业（PI，内置 pi.json 配方） ---------- */
+let PI_SCHEM=null, lastPi=null; const piMatP={}, piProdP={};
+async function loadPi(){ if(PI_SCHEM) return PI_SCHEM; const r=await fetch("pi.json"); if(!r.ok) throw new Error("HTTP "+r.status); PI_SCHEM=await r.json(); return PI_SCHEM; }
+async function fillPi(){
+  const sel=$("#piSchematic"); if(!sel) return;
+  const pi=await loadPi(); sel.innerHTML="";
+  const keys=Object.keys(pi).sort((a,b)=>(pi[a].name||"").localeCompare(pi[b].name||"","zh"));
+  const frag=document.createDocumentFragment();
+  /* 选项直接显示中文（名表含全部行星产物），不再仅在选中后翻译 */
+  await Promise.all(keys.map(async k=>{
+    const o=document.createElement("option"); o.value=k;
+    const s=pi[k]; let lbl=s.name||("配方 "+k);
+    if(s&&s.outputs&&s.outputs.length){ const cn=await nameOfMaterial(s.outputs[0][0]); if(cn&&cn.indexOf("未知物品")!==0) lbl=cn; }
+    o.textContent=lbl; frag.appendChild(o);
+  }));
+  sel.appendChild(frag);
+  sel.dispatchEvent(new Event("change"));
+}
+function piChineseSel(sel, pi, first){
+  (async()=>{ const o=sel.options[sel.selectedIndex]; if(!o) return; const s=pi[o.value];
+    if(s&&s.outputs&&s.outputs.length){ const cn=await nameOfMaterial(s.outputs[0][0]); if(cn&&cn.indexOf("未知物品")!==0) o.textContent=cn; } })();
+}
+$("#piSchematic").addEventListener("change", ()=>{ lastPi=$("#piSchematic").value; renderPi(); if(PI_SCHEM) piChineseSel($("#piSchematic"), PI_SCHEM, false); });
+async function renderPi(){
+  if(!lastPi||!PI_SCHEM) return;
+  const s=PI_SCHEM[lastPi]; if(!s) return;
+  const ins=s.inputs||[], outs=s.outputs||[], cyc=s.cycle||3600;
+  $("#piInfo").innerHTML="配方 <b>"+escapeHtml(s.name||lastPi)+"</b> · 周期 <b>"+fmtTime(cyc)+"</b><br>输入 <b>"+ins.length+"</b> 项 → 输出 <b>"+outs.map(o=>o[1]+"×"+o[0]).join("、")+"</b>";
+  $("#piTime").textContent=fmtTime(cyc)+"（每周期，P0 精炼周期 "+fmtTime(s.cycle||1800)+"）";
+  $("#piMats").innerHTML=ins.map((m,i)=>
+    "<div class='bomrow'><span class='nm' id='piN"+i+"'>"+m[0]+"</span>"+
+    "<span class='pr'><input class='sm' id='piP"+i+"' value='"+(piMatP[m[0]]||"")+"' placeholder='单价' style='width:110px'></span>"+
+    "<span class='qt'>×"+m[1]+"</span></div>").join("")||"<div class='tip'>无输入（P0 由行星采集）</div>";
+  await Promise.all(ins.map(async (m,i)=>{ const el=$("#piN"+i); if(el) el.textContent=await nameOfMaterial(m[0]); }));
+  $("#piBreak").innerHTML=(outs.length?outs.map((p,i)=>"<div class='rrow'><span class='k' id='piPN"+i+"'>"+p[0]+"</span><span class='v' id='piPV"+i+"'>"+money(piProdP[p[0]]||0)+" /件</span></div>").join(""):"")+
+    "<div class='rrow total'><span class='k'>单周期成本</span><span class='v' id='piPerRun'>0</span></div>"+
+    "<div class='rrow'><span class='k'>单周期产物价值</span><span class='v' id='piProdVal'>0</span></div>"+
+    "<div class='rrow total'><span class='k'>单周期利润</span><span class='v' id='piProfit'>0</span></div>";
+  await Promise.all(outs.map(async (p,i)=>{ const el=$("#piPN"+i); if(el) el.textContent=await nameOfMaterial(p[0]); }));
+  computePi();
+}
+async function piPull(){
+  if(!lastPi||!PI_SCHEM) return;
+  const s=PI_SCHEM[lastPi], ins=s.inputs||[], outs=s.outputs||[];
+  const ids=[...new Set(ins.concat(outs).map(m=>m[0]))]; if(!ids.length) return;
+  const res=await marketstat(ids, state.regionId);
+  ins.forEach((m,i)=>{ const d=res[m[0]]; const p=d&&(d.sell.min||d.buy.max); if(p!==undefined){ piMatP[m[0]]=p; const el=$("#piP"+i); if(el) el.value=p; } });
+  outs.forEach(m=>{ const d=res[m[0]]; piProdP[m[0]]=d? (d.buy.max||d.sell.min||0):0; });
+  computePi();
+  $("#piStatus2").className="status ok"; $("#piStatus2").textContent="已拉取材料市价（"+ids.length+" 项），产物按买单最高价估值。";
+}
+$("#piPull").addEventListener("click", piPull);
+function computePi(){
+  if(!lastPi||!PI_SCHEM) return;
+  const s=PI_SCHEM[lastPi], runs=Math.max(1,parseInt($("#piRuns").value)||1);
+  const tax=Math.max(0,Math.min(100,parseFloat($("#piTax").value)||0))/100;
+  const ins=s.inputs||[], outs=s.outputs||[];
+  let cost=0; ins.forEach((m,i)=>{ const p=parseFloat(($("#piP"+i)&&$("#piP"+i).value)||0)||piMatP[m[0]]||0; cost+=p*m[1]; }); cost*=runs;
+  let pv=0; outs.forEach(m=>{ pv+=m[1]*(piProdP[m[0]]||0); }); pv*=runs; pv*= (1-tax);
+  $("#piPerRun").textContent=money(cost); $("#piProdVal").textContent=money(pv);
+  const el=$("#piProfit"); el.textContent=money(pv-cost); el.style.color=(pv>=cost?"var(--pos)":"var(--neg)");
+}
+$("#piRuns").addEventListener("input", computePi);
+$("#piTax").addEventListener("input", computePi);
+$("#piMats").addEventListener("input", e=>{ if(e.target&&/^piP/.test(e.target.id||"")) computePi(); });
+function piCopy(){
+  if(!lastPi||!PI_SCHEM) return;
+  const s=PI_SCHEM[lastPi], ins=s.inputs||[];
+  const lines=ins.map((m,i)=>{ const n=($("#piN"+i)&&$("#piN"+i).textContent)||m[0]; return "("+m[1]+")x "+n; });
+  copyText(lines.join("\n"),"行星加工采购清单已复制，可粘贴进游戏采购。");
+}
+$("#piCopy").addEventListener("click", piCopy);
+
+/* ---------- 雇佣兵巢穴（手动核算） ---------- */
+function mcCalc(){
+  const cost=parseFloat($("#mcCost").value)||0, runs=Math.max(1,parseInt($("#mcRuns").value)||1),
+    out=parseFloat($("#mcOut").value)||0, days=Math.max(1,parseFloat($("#mcDays").value)||1);
+  const totalCost=cost*runs, net=out-totalCost, perDay=net/days;
+  $("#mcBreak").innerHTML=
+    "<div class='rrow'><span class='k'>补给总成本</span><span class='v'>"+money(totalCost)+"</span></div>"+
+    "<div class='rrow'><span class='k'>产出/补偿</span><span class='v'>"+money(out)+"</span></div>"+
+    "<div class='rrow total'><span class='k'>净收益</span><span class='v' style='color:"+(net>=0?"var(--pos)":"var(--neg)")+"'>"+money(net)+"</span></div>"+
+    "<div class='rrow'><span class='k'>日均净收益（÷"+fmt(days)+"天）</span><span class='v' style='color:"+(perDay>=0?"var(--pos)":"var(--neg)")+"'>"+money(perDay)+"</span></div>";
+}
+$("#mcCalc").addEventListener("click", mcCalc);
+
+
+/* ---------- 角色与技能 ---------- */
+function renderSkills(){
+  const box=$("#chSkills"); if(!box) return;
+  box.innerHTML="";
+  $("#chServer").value=SERVERS[state.server].label;
+  $("#chName").value=state.charName||"";
+  const cc=$("#chEsiChar"); if(cc) cc.value=state.esiCharId||"";
+  SKILLS.forEach(s=>{
+    const d=document.createElement("div"); d.className="skrow";
+    d.innerHTML="<div class='skd'><div class='k'>"+escapeHtml(s.k)+"</div><div class='d'>"+escapeHtml(s.d)+"</div></div>"+
+      "<select class='sk' data-skill='"+s.id+"'>"+[0,1,2,3,4,5].map(l=>"<option value='"+l+"'"+(skill(s.id)===l?" selected":"")+">Lv"+l+"</option>").join("")+"</select>";
+    box.appendChild(d);
+  });
+  renderCharEffect();
+}
+function renderCharEffect(){
+  const {broker,tax}=feeRates();
+  $("#chEffect").innerHTML=
+    "<div class='rrow'><span class='k'>有效经纪费率（基础 "+state.broker+"% × 技能）</span><span class='v'>"+broker.toFixed(2)+"%</span></div>"+
+    "<div class='rrow'><span class='k'>有效市场交易税（基础 "+state.tax+"% × 技能）</span><span class='v'>"+tax.toFixed(2)+"%</span></div>"+
+    "<div class='rrow'><span class='k'>制造时间系数（工业/先进工业）</span><span class='v'>"+(timeMult()*100).toFixed(0)+"%</span></div>"+
+    "<div class='rrow'><span class='k'>同时制造槽 / 研发拷贝槽</span><span class='v'>"+massSlots()+" / "+labSlots()+"</span></div>"+
+    "<div class='rrow'><span class='k'>提炼产出加成（提炼学概论/提炼效率理论）</span><span class='v'>+"+refineBoostPct()+"%</span></div>"+
+    "<div class='rrow'><span class='k'>ME 研究速度（科学/冶金学）</span><span class='v'>"+(researchMult(3)*100).toFixed(0)+"%</span></div>"+
+    "<div class='rrow'><span class='k'>TE 研究速度（研究）</span><span class='v'>"+(researchMult(4)*100).toFixed(0)+"%</span></div>";
+}
+$("#chSkills").addEventListener("change", e=>{ const t=e.target; if(t.dataset.skill==null) return; state.skills[t.dataset.skill]=+t.value; saveState(); renderCharEffect(); renderFeeList(); computeCost(); renderRefine(); });
+$("#chName").addEventListener("input", e=>{ state.charName=e.target.value; saveState(); });
+function profileLabel(p){ return (p.name||p.charName||"未命名角色")+" · "+SERVERS[p.server]?.label; }
+function currentProfile(){ return state.charProfiles.find(p=>p.id===state.currentCharId)||null; }
+function renderCharProfiles(){
+  const sel=$("#chProfileSel"); if(!sel) return;
+  const cur=state.currentCharId;
+  sel.innerHTML="<option value=''>＋ 新建角色档案</option>"+state.charProfiles.map(p=>
+    "<option value='"+p.id+"'"+(p.id===cur?" selected":"")+">"+escapeHtml(profileLabel(p))+"</option>").join("");
+  const info=$("#chProfileInfo");
+  if(cur){ const p=currentProfile(); info.textContent="当前档案："+profileLabel(p)+"（更新于 "+new Date(p.updated).toLocaleString()+"）。角色技能会随载入自动恢复。"; }
+  else info.textContent="未关联档案——保存后将自动创建角色档案。";
+}
+function chApplyProfile(p){
+  if(!p) return;
+  state.charName=p.charName||""; state.skills=Object.assign({},DEF.skills,p.skills||{});
+  state.esiCharId=p.esiCharId||""; state.currentCharId=p.id;
+  saveState(); renderSkills(); renderFeeList(); computeCost(); renderRefine(); renderCharProfiles();
+}
+$("#chSave").addEventListener("click", ()=>{
+  const keyName=(state.charName||"").trim()||"未命名角色";
+  /* 以「角色名 + 服务器」为档案主键：不同角色名保存即新建并保留原档案；同名同服再次保存才覆盖更新 */
+  let p=state.charProfiles.find(x=>(x.charName||"")===(state.charName||"") && x.server===state.server);
+  const snap={ server:state.server, charName:state.charName||"", skills:Object.assign({},state.skills), esiCharId:state.esiCharId||"", updated:Date.now() };
+  if(p){ Object.assign(p,snap); p.name=keyName; }
+  else { p={ id:"c"+Date.now(), name:keyName, ...snap }; state.charProfiles.push(p); }
+  state.currentCharId=p.id; saveState(); renderCharProfiles();
+  $("#chStatus").className="status ok";
+  $("#chStatus").textContent="已存入角色库："+profileLabel(p)+"。输入不同角色名保存会新建档案（原档案保留）；同名同服再次保存则覆盖更新该档案。挂单/制造/提炼计算已按技能更新。";
+  toast("角色档案已保存","ok");
+});
+$("#chReset").addEventListener("click", ()=>{ state.skills={acct:0,broker_rel:0,ind:0,advind:0,massprod:0,refine:0,refining:0,lab:0,sci:0,metal:0,res:0}; state.charName=""; state.esiCharId=""; state.currentCharId=""; saveState(); renderSkills(); renderFeeList(); computeCost(); renderRefine(); renderCharProfiles(); $("#chStatus").className="status ok"; $("#chStatus").textContent="技能已重置（角色档案未删除）。"; });
+$("#chProfileLoad").addEventListener("click", ()=>{
+  const id=$("#chProfileSel").value; if(!id){ $("#chStatus").className="status"; $("#chStatus").textContent="请先选择要载入的角色档案。"; return; }
+  const p=state.charProfiles.find(x=>x.id===id); if(!p) return;
+  chApplyProfile(p);
+  $("#chStatus").className="status ok"; $("#chStatus").textContent="已载入档案："+profileLabel(p)+"（技能/角色名/官方接口角色 ID 已恢复）。";
+  toast("已载入角色档案","ok");
+});
+$("#chProfileDel").addEventListener("click", ()=>{
+  const id=$("#chProfileSel").value; if(!id){ $("#chStatus").className="status"; $("#chStatus").textContent="请先选择要删除的角色档案。"; return; }
+  state.charProfiles=state.charProfiles.filter(x=>x.id!==id);
+  if(state.currentCharId===id) state.currentCharId="";
+  saveState(); renderCharProfiles();
+  $("#chStatus").className="status ok"; $("#chStatus").textContent="已删除该角色档案。";
+  toast("角色档案已删除","ok");
+});
+async function esiResolveIds(){
+  /* 用官方公开接口 universe/ids 校验技能 type_id（浏览器 fetch，公开接口支持 CORS）；失败回退内置映射 */
+  try{
+    const r=await fetch("https://esi.evetech.net/latest/universe/ids/?datasource=tranquility",{
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(Object.values(SKILL_EN_NAMES)) });
+    if(r.ok){
+      const j=await r.json(), inv=j.inventory_types||[], map={};
+      for(const key in SKILL_EN_NAMES){ const hit=inv.find(t=>t.name===SKILL_EN_NAMES[key]); if(hit) map[key]=hit.id; }
+      if(Object.keys(map).length) return map;
+    }
+  }catch(e){}
+  return Object.assign({}, SKILL_IDS);
+}
+async function esiPull(){
+  const st=$("#chStatus");
+  if(state.server==="serenity"||state.server==="shuguang"){ st.className="status err"; st.textContent="国服（区服一/区服二）无官方角色公开接口，无法自动读取；请在下方手动填写技能等级。"; return; }
+  const charId=($("#chEsiChar").value||"").trim(), token=($("#chEsiToken").value||"").trim();
+  if(!charId||!token){ st.className="status err"; st.textContent="请填写欧服角色 ID 与公开接口访问令牌（官方 SSO 授权后获取）。"; return; }
+  state.esiCharId=charId; saveState();
+  st.className="status"; st.textContent="正在调用官方公开接口读取角色技能…";
+  try{
+    const idm=await esiResolveIds();
+    const r=await fetch("https://esi.evetech.net/latest/characters/"+encodeURIComponent(charId)+"/skills/?datasource=tranquility",{ headers:{"Authorization":"Bearer "+token,"User-Agent":"MarketCalc/1.0"} });
+    if(!r.ok){ st.className="status err"; st.textContent="公开接口返回 "+r.status+"："+((await r.text()).slice(0,140)||"令牌无效或已过期（请重新获取 Bearer Token）"); return; }
+    const j=await r.json(), byId={};
+    (j.skills||[]).forEach(s=>{ byId[s.skill_id]=s.active_skill_level; });
+    let filled=0, missing=[];
+    for(const key in idm){ if(byId[idm[key]]!=null){ state.skills[key]=byId[idm[key]]; filled++; } else missing.push(key); }
+    saveState(); renderSkills(); renderFeeList(); computeCost(); renderRefine();
+    st.className="status ok";
+    st.textContent="已从官方公开接口读取角色技能（"+SERVERS[state.server].label+"）：回填 "+filled+" 项"+(missing.length?("，未匹配："+missing.join("、")+"（可手动填）"):"")+"。";
+    toast("已从官方公开接口回填角色技能","ok");
+  }catch(err){ st.className="status err"; st.textContent="公开接口读取失败："+err.message; }
+}
+$("#chEsi").addEventListener("click", esiPull);
+$("#chEsiChar").addEventListener("blur", ()=>{ state.esiCharId=$("#chEsiChar").value.trim(); saveState(); });
+
+/* ---------- 挂单核算 ---------- */
+function feeRates(){
+  const baseBroker=state.broker, baseTax=state.tax;
+  return { broker: baseBroker*brokerMult(), tax: baseTax*taxMult() };
+}
+function currentCost(){ return parseFloat($("#sCost").value)||0; }
+function renderFeeList(){
+  const {broker,tax}=feeRates();
+  $("#sFeeList").innerHTML="<div class='rrow'><span class='k'>成本</span><span class='v'>"+money(currentCost())+"</span></div>"+
+    "<div class='rrow sub'><span class='k'>经纪人费率 "+broker.toFixed(2)+"%（技能修正后）</span></div>"+
+    "<div class='rrow sub'><span class='k'>市场交易税 "+tax.toFixed(2)+"%（技能修正后）</span></div>";
+}
+$("#sCost").addEventListener("input", renderFeeList);
+$("#sMargin").addEventListener("input", e=>{ $("#sMarginVal").textContent=e.target.value+"%"; });
+$("#sImport").addEventListener("click", ()=>{ const {total, matCost}=computeCost();
+  if(!bom.length || (total===0 && matCost===0)){ $("#sStatus").className="status err"; $("#sStatus").textContent="制造成本为空：请先在「制造成本」页录入材料或选择蓝图，算出成本后再导入。"; return; }
+  $("#sCost").value=Math.round(total*100)/100; renderFeeList(); calcPrice(); toast("已导入制造成本 "+money(total),"ok"); });
+function renderResult(price,net,profit,cost,margin,broker,tax){
+  $("#sEmpty").style.display="none"; $("#sResult").style.display="block";
+  $("#sPrice").textContent=money(price); $("#sNet").textContent=money(net);
+  const pf=$("#sProfit"); pf.textContent=money(profit); pf.className="v "+(profit>=0?"pos":"neg");
+  $("#sMarginOut").textContent=margin.toFixed(2)+"%";
+  $("#sBroker").textContent=money(price*broker/100); $("#sTax").textContent=money(price*tax/100);
+  $("#sStatus").className=profit>=0?"status ok":"status err";
+  $("#sStatus").textContent=profit>=0?("目标利润率 "+margin.toFixed(2)+"% · 毛利率 "+(profit/(net||1)*100).toFixed(1)+"%"):"按此定价将亏损，请提高售价或降低成本。";
+}
+function calcPrice(){
+  const cost=currentCost(); const {broker,tax}=feeRates(); const m=parseFloat($("#sMargin").value)||0;
+  if(!cost){ $("#sStatus").className="status err"; $("#sStatus").textContent="请先输入或导入成本。"; return; }
+  const denom=(1-broker/100-tax/100), price=cost*(1+m/100)/denom, net=price*denom, profit=net-cost;
+  renderResult(price,net,profit,cost,m,broker,tax);
+}
+function calcProfit(){
+  const cost=currentCost(); const {broker,tax}=feeRates(); const price=parseFloat($("#sUserPrice").value)||0;
+  if(!price){ $("#sStatus").className="status err"; $("#sStatus").textContent="请先在「你的挂单价」处输入价格。"; return; }
+  if(!cost){ $("#sStatus").className="status err"; $("#sStatus").textContent="请先输入或导入成本。"; return; }
+  const net=price*(1-broker/100-tax/100), profit=net-cost, margin=cost?profit/cost*100:0;
+  renderResult(price,net,profit,cost,margin,broker,tax);
+}
+$("#sCalcPrice").addEventListener("click", calcPrice);
+$("#sCalcProfit").addEventListener("click", calcProfit);
+$("#tCalc").addEventListener("click", ()=>{
+  const buy=parseFloat($("#tBuy").value)||0, sell=parseFloat($("#tSell").value)||0; const {broker,tax}=feeRates(); const out=$("#tResult");
+  if(!buy||!sell){ out.className="status err"; out.textContent="请输入买入价与卖出价。"; return; }
+  const net=sell*(1-broker/100-tax/100), profit=net-buy, margin=buy?profit/buy*100:0;
+  out.className=profit>=0?"status ok":"status err";
+  out.textContent="卖出净收 "+money(net)+"（经纪费 "+money(sell*broker/100)+" + 税 "+money(sell*tax/100)+"）→ 净利 "+money(profit)+"（"+margin.toFixed(2)+"%）";
+});
+
+/* ---------- 挖矿挂单 ---------- */
+let mgOre=null, mgRef=[];
+async function mgSearchFn(){
+  const q=$("#mgSearch").value.trim(), box=$("#mgList");
+  if(!q) return; box.innerHTML="";
+  try{
+    const raw=await searchname(q);
+    if(!raw.length){ box.innerHTML="<div class='tip'>未找到矿石。</div>"; return; }
+    raw.slice(0,8).forEach(it=>{ const row=document.createElement("div"); row.className="sitem";
+      row.innerHTML="<span class='n'>"+escapeHtml(it.typename)+"</span>";
+      row.addEventListener("click", ()=>{ mgOre={id:it.typeid, name:it.typename, price:0}; $("#mgOre").style.display="block"; $("#mgOre").innerHTML="矿石 <b>"+escapeHtml(it.typename)+"</b> · 点「拉取原矿卖单价」获取价格。"; box.innerHTML=""; mgRawCompute(); });
+      box.appendChild(row); });
+  }catch(e){ box.innerHTML="<div class='tip'>搜索失败："+escapeHtml(e.message)+"</div>"; }
+}
+$("#mgSearchBtn").addEventListener("click", mgSearchFn);
+$("#mgSearch").addEventListener("keydown", e=>{ if(e.key==="Enter") mgSearchFn(); });
+async function mgPull(){ if(!mgOre){ toast("先选择矿石","err"); return; } const d=await marketstat(mgOre.id, state.regionId); mgOre.price=d.sell.min||d.buy.max||0; mgRawCompute(); toast("已拉取原矿卖单价 "+money(mgOre.price),"ok"); }
+$("#mgPull").addEventListener("click", mgPull);
+function mgRawCompute(){
+  const qty=Math.max(0,parseFloat($("#mgQty").value)||0), cost=parseFloat($("#mgCost").value)||0;
+  const p=mgOre&&mgOre.price||0, gross=qty*p; const {broker,tax}=feeRates(), fees=gross*(broker+tax)/100, net=gross-fees-cost;
+  const box=$("#mgRawBreak"); if(!box) return;
+  box.innerHTML="<div class='rrow'><span class='k'>原矿出售毛收入（"+fmt(qty)+" × "+money(p)+"）</span><span class='v'>"+money(gross)+"</span></div>"+
+    "<div class='rrow'><span class='k'>经纪费+市场税</span><span class='v'>-"+money(fees)+"</span></div>"+
+    "<div class='rrow'><span class='k'>挖矿成本</span><span class='v'>-"+money(cost)+"</span></div>"+
+    "<div class='rrow total'><span class='k'>原矿挂单净收</span><span class='v' style='color:"+(net>=0?"var(--pos)":"var(--neg)")+"'>"+money(net)+"</span></div>";
+}
+$("#mgQty").addEventListener("input", mgRawCompute);
+$("#mgCost").addEventListener("input", mgRawCompute);
+$("#mgAddRow").addEventListener("click", ()=>{ mgRef.push({name:"", qty:"", price:"", id:null}); mgRefRender(); });
+function mgRefRender(){
+  const box=$("#mgRefRows"); if(!box) return;
+  box.innerHTML=mgRef.map((m,i)=>
+    "<div class='rrow'><span class='k'><input class='sm' data-mg='"+i+"' data-f='name' value='"+escapeHtml(m.name)+"' placeholder='矿物名' style='width:130px'></span>"+
+    "<span class='v'><input class='sm' data-mg='"+i+"' data-f='qty' value='"+(m.qty||"")+"' placeholder='每单位' style='width:70px'> <input class='sm' data-mg='"+i+"' data-f='price' value='"+(m.price||"")+"' placeholder='单价' style='width:100px'></span></div>").join("")||"<div class='tip'>尚未添加矿物产出（每单位矿石提炼量）。</div>";
+}
+$("#mgRefRows").addEventListener("input", e=>{ const t=e.target; if(!t.dataset||t.dataset.mg==null) return; const i=+t.dataset.mg; mgRef[i][t.dataset.f]=t.value; if(t.dataset.f==="name"&&/^\d+$/.test(t.value.trim())) mgRef[i].id=+t.value.trim(); mgRefCompute(); });
+async function mgPullRef(){
+  for(const r of mgRef){ if(!r.id&&r.name&&!/^\d+$/.test(r.name.trim())){ try{ const raw=await searchname(r.name.trim()); if(raw&&raw.length){ r.id=raw[0].typeid; if(!r.name) r.name=raw[0].typename; } }catch(e){} } }
+  const ids=[...new Set(mgRef.map(r=>+r.id).filter(Boolean))];
+  if(!ids.length){ toast("请先填入矿物中文名称","err"); return; }
+  const res=await marketstat(ids, state.regionId);
+  mgRef.forEach(r=>{ if(res[+r.id]){ r.price=res[+r.id].sell.min||res[+r.id].buy.max||0; } });
+  mgRefRender(); mgRefCompute(); toast("已拉取矿物卖单价","ok");
+}
+$("#mgPullRef").addEventListener("click", mgPullRef);
+function mgRefCompute(){
+  const qty=Math.max(0,parseFloat($("#mgQty").value)||0), yieldPct=Math.min(100,Math.max(0,parseFloat($("#mgYield").value)||80)), cost=parseFloat($("#mgCost").value)||0;
+  const {broker,tax}=feeRates();
+  let gross=0; mgRef.forEach(m=>{ const out=qty*(parseFloat(m.qty)||0)*yieldPct/100; gross+=out*(parseFloat(m.price)||0); });
+  const fees=gross*(broker+tax)/100, net=gross-fees-cost;
+  const box=$("#mgRefBreak"); if(!box) return;
+  box.innerHTML="<div class='rrow'><span class='k'>精炼矿物毛收入（精炼率 "+yieldPct.toFixed(1)+"%）</span><span class='v'>"+money(gross)+"</span></div>"+
+    "<div class='rrow'><span class='k'>经纪费+市场税</span><span class='v'>-"+money(fees)+"</span></div>"+
+    "<div class='rrow'><span class='k'>挖矿成本</span><span class='v'>-"+money(cost)+"</span></div>"+
+    "<div class='rrow total'><span class='k'>提炼材料挂单净收</span><span class='v' style='color:"+(net>=0?"var(--pos)":"var(--neg)")+"'>"+money(net)+"</span></div>";
+}
+$("#mgYield").addEventListener("input", mgRefCompute);
+
+/* ---------- 种菜挂单（行星工业出售） ---------- */
+let lastSpi=null; const spiMatP={}, spiProdP={};
+async function fillSpi(){
+  const sel=$("#spiSchematic"); if(!sel) return;
+  if(!PI_SCHEM){ try{ await loadPi(); }catch(e){} }
+  sel.innerHTML="";
+  const pi=PI_SCHEM; if(!pi) return;
+  const keys=Object.keys(pi).sort((a,b)=>(pi[a].name||"").localeCompare(pi[b].name||"","zh"));
+  const frag=document.createDocumentFragment();
+  /* 选项直接显示中文（名表含全部行星产物） */
+  await Promise.all(keys.map(async k=>{
+    const o=document.createElement("option"); o.value=k;
+    const s=pi[k]; let lbl=s.name||("配方 "+k);
+    if(s&&s.outputs&&s.outputs.length){ const cn=await nameOfMaterial(s.outputs[0][0]); if(cn&&cn.indexOf("未知物品")!==0) lbl=cn; }
+    o.textContent=lbl; frag.appendChild(o);
+  }));
+  sel.appendChild(frag);
+  sel.dispatchEvent(new Event("change"));
+}
+$("#spiSchematic").addEventListener("change", ()=>{ lastSpi=$("#spiSchematic").value; renderSpi(); if(PI_SCHEM) piChineseSel($("#spiSchematic"), PI_SCHEM, false); });
+async function renderSpi(){
+  if(!lastSpi||!PI_SCHEM) return;
+  const s=PI_SCHEM[lastSpi]; if(!s) return;
+  const ins=s.inputs||[], outs=s.outputs||[], cyc=s.cycle||3600;
+  $("#spiInfo").innerHTML="配方 <b>"+escapeHtml(s.name||lastSpi)+"</b> · 周期 <b>"+fmtTime(cyc)+"</b>";
+  $("#spiTime").textContent=fmtTime(cyc)+"（每周期）";
+  $("#spiMats").innerHTML=ins.map((m,i)=>
+    "<div class='bomrow'><span class='nm' id='spiN"+i+"'>"+m[0]+"</span>"+
+    "<span class='pr'><input class='sm' id='spiP"+i+"' value='"+(spiMatP[m[0]]||"")+"' placeholder='单价' style='width:110px'></span>"+
+    "<span class='qt'>×"+m[1]+"</span></div>").join("")||"<div class='tip'>无输入（P0 由行星采集）</div>";
+  await Promise.all(ins.map(async (m,i)=>{ const el=$("#spiN"+i); if(el) el.textContent=await nameOfMaterial(m[0]); }));
+  $("#spiBreak").innerHTML=(outs.length?outs.map((p,i)=>"<div class='rrow'><span class='k' id='spiPN"+i+"'>"+p[0]+"</span><span class='v' id='spiPV"+i+"'>"+money(spiProdP[p[0]]||0)+" /件</span></div>").join(""):"")+
+    "<div class='rrow total'><span class='k'>单周期成本</span><span class='v' id='spiPerRun'>0</span></div>"+
+    "<div class='rrow'><span class='k'>产物出售价值</span><span class='v' id='spiProdVal'>0</span></div>"+
+    "<div class='rrow total'><span class='k'>单周期利润</span><span class='v' id='spiProfit'>0</span></div>";
+  await Promise.all(outs.map(async (p,i)=>{ const el=$("#spiPN"+i); if(el) el.textContent=await nameOfMaterial(p[0]); }));
+  computeSpi();
+}
+async function spiPull(){
+  if(!lastSpi||!PI_SCHEM) return;
+  const s=PI_SCHEM[lastSpi], ins=s.inputs||[], outs=s.outputs||[];
+  const ids=[...new Set(ins.concat(outs).map(m=>m[0]))]; if(!ids.length) return;
+  const res=await marketstat(ids, state.regionId);
+  ins.forEach((m,i)=>{ const d=res[m[0]]; const p=d&&(d.sell.min||d.buy.max); if(p!==undefined){ spiMatP[m[0]]=p; const el=$("#spiP"+i); if(el) el.value=p; } });
+  outs.forEach(m=>{ const d=res[m[0]]; spiProdP[m[0]]=d? (d.buy.max||d.sell.min||0):0; });
+  computeSpi();
+  $("#spiStatus2").className="status ok"; $("#spiStatus2").textContent="已拉取材料市价（"+ids.length+" 项），产物按买单最高价估值。";
+}
+$("#spiPull").addEventListener("click", spiPull);
+function computeSpi(){
+  if(!lastSpi||!PI_SCHEM) return;
+  const s=PI_SCHEM[lastSpi], runs=Math.max(1,parseInt($("#spiRuns").value)||1), tax=Math.max(0,Math.min(100,parseFloat($("#spiTax").value)||0))/100;
+  const ins=s.inputs||[], outs=s.outputs||[];
+  let cost=0; ins.forEach((m,i)=>{ const p=parseFloat(($("#spiP"+i)&&$("#spiP"+i).value)||0)||spiMatP[m[0]]||0; cost+=p*m[1]; }); cost*=runs;
+  let pv=0; outs.forEach(m=>{ pv+=m[1]*(spiProdP[m[0]]||0); }); pv*=runs*(1-tax);
+  $("#spiPerRun").textContent=money(cost); $("#spiProdVal").textContent=money(pv);
+  const el=$("#spiProfit"); el.textContent=money(pv-cost); el.style.color=(pv>=cost?"var(--pos)":"var(--neg)");
+}
+$("#spiRuns").addEventListener("input", computeSpi);
+$("#spiTax").addEventListener("input", computeSpi);
+$("#spiMats").addEventListener("input", e=>{ if(e.target&&/^spiP/.test(e.target.id||"")) computeSpi(); });
+function spiCopy(){ if(!lastSpi||!PI_SCHEM) return; const s=PI_SCHEM[lastSpi], ins=s.inputs||[]; const lines=ins.map((m,i)=>{ const n=($("#spiN"+i)&&$("#spiN"+i).textContent)||m[0]; return "("+m[1]+")x "+n; }); copyText(lines.join("\n"),"种菜采购清单已复制，可粘贴进游戏采购。"); }
+$("#spiCopy").addEventListener("click", spiCopy);
+
+/* ---------- 市场目录树（随附中文分组库 market_groups.json；物品名经数据服务懒加载缓存） ---------- */
+const TREE_KEY="eve_mk_mktree_v2";
+/* 目录中剔除的纯外观/非商品顶层分组（舰船涂装=1954、服饰=1396），避免“非正常商品项”混入目录 */
+const TREE_EXCLUDE_TOP = { 1954:1, 1396:1 };
+let MKTREE=null, treeBuilding=false, treeOpen={}, treeSelType=null, treeNodes={};
+function loadTree(){ try{ MKTREE=JSON.parse(lsGet(TREE_KEY))||null; if(MKTREE&&!MKTREE.names) MKTREE.names={}; }catch(e){ MKTREE=null; } return MKTREE; }
+let ITEMNAMES_JSON=null;
+async function loadItemNamesJson(){ if(ITEMNAMES_JSON) return ITEMNAMES_JSON; try{ const r=await fetch("item_names.json"); if(r.ok) ITEMNAMES_JSON=await r.json(); }catch(e){} return ITEMNAMES_JSON||{}; }
+async function buildMarketTree(){
+  if(MKTREE) return MKTREE;
+  if(treeBuilding) return MKTREE;
+  treeBuilding=true;
+  const st=$("#treeStatus"); if(st) st.textContent="正在加载市场目录（随附中文分组库）…";
+  try{
+    const r=await fetch("market_groups.json");
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const groups=await r.json();
+    treeNodes={};
+    for(const id in groups){ const g=groups[id]; treeNodes[id]={id:+id, name:g.n||"", zh:g.n||("分组 "+id), parent:(g.p==null?null:g.p), types:g.t||[]}; }
+    MKTREE={nodes:treeNodes, roots:Object.keys(treeNodes).filter(id=>treeNodes[id].parent==null && !TREE_EXCLUDE_TOP[+id]), names:{}};
+    await loadItemNamesJson(); // 预载名称库，使叶子直接显示名称而非临时数字/ID
+    try{ lsSet(TREE_KEY, JSON.stringify(MKTREE)); }catch(e){}
+    const t=$("#treeCount"); if(t) t.textContent=MKTREE.roots.length+" 顶层 · "+Object.keys(treeNodes).length+" 分组";
+    if(st) st.textContent="目录已加载（随附中文分组库，秒开）。";
+  }catch(e){ if(st) st.textContent="市场目录加载失败："+e.message; }
+  finally{ treeBuilding=false; }
+  renderTree();
+  return MKTREE;
+}
+function childrenOf(id){ const {nodes}=MKTREE||{}; const out=[]; for(const k in nodes){ if(nodes[k].parent===id) out.push(nodes[k]); } return out; }
+function renderTree(){
+  const box=$("#treeBox"); if(!box) return;
+  const nodes=(MKTREE&&MKTREE.nodes)||treeNodes;
+  if(!nodes||!Object.keys(nodes).length){ box.innerHTML="<div class='trload'>市场目录未加载。</div>"; return; }
+  const roots=Object.keys(nodes).filter(id=>nodes[id].parent==null && !TREE_EXCLUDE_TOP[+id]);
+  const cnt=$("#treeCount"); if(cnt) cnt.textContent=roots.length+" 顶层 · "+Object.keys(nodes).length+" 分组";
+  const sortz=(a,b)=>(a.zh||a.name||"").localeCompare(b.zh||b.name||"","zh");
+  const leafOf=(gid,tid)=>{
+    const nm=ITEMNAMES_JSON&&ITEMNAMES_JSON[String(tid)];
+    if(nm) return nm;
+    const m=MKTREE&&MKTREE.names&&MKTREE.names[gid];
+    return (m&&m[tid])||"（未命名物品）";
+  };
+  const rn=(id)=>{
+    const n=nodes[id]; if(!n) return "";
+    const kids=childrenOf(id).sort(sortz);
+    const open=!!treeOpen[id];
+    const hasKids=kids.length>0, hasItems=(n.types&&n.types.length>0);
+    let h="<div class='tn' data-g='"+id+"'><span class='caret'>"+(hasKids||hasItems?"▸":"·")+"</span><span class='gname'>"+escapeHtml(n.zh||n.name||("分组 "+id))+"</span><span class='cnt'>"+(kids.length+n.types.length)+"</span></div>";
+    if(open){
+      h+="<div class='tkids open'>";
+      kids.forEach(k=>{ h+=rn(k.id); });
+      if(hasItems){
+        const named=!!(MKTREE&&MKTREE.names&&MKTREE.names[id]);
+        h+="<div class='trload'>本组物品 "+n.types.length+" 项"+(named?"":" · 名称加载中…")+"</div>";
+        n.types.forEach(tid=>{ const nm=leafOf(id,tid); const sl=(tid===treeSelType)?" selected":""; h+="<div class='tleaf"+sl+"' data-type='"+tid+"' data-g='"+id+"'><span class='gname'>"+escapeHtml(nm)+"</span></div>"; });
+      }
+      h+="</div>";
+    }
+    return h;
+  };
+  let html="";
+  if(favs.length||favOpen){ html+="<div class='tn fav' data-favtoggle><span class='caret'>"+(favOpen?"▾":"▸")+"</span><span class='gname'>常用商品</span><span class='cnt'>"+favs.length+"</span></div>";
+    if(favOpen){ html+="<div class='tkids open'>"+(favs.length?favs.map(f=>"<div class='tleaf' data-favid='"+String(f.id).replace(/'/g,"&#39;")+"'><span class='gname'>"+escapeHtml(f.name)+"</span><span class='x' data-favdel='"+String(f.id).replace(/'/g,"&#39;")+"' title='取消收藏'>×</span></div>").join(""):"<div class='trload'>在物品行情点「☆ 收藏」即可收录常用商品。</div>")+"</div>"; }
+  }
+  box.innerHTML=html+roots.map(id=>nodes[id]).filter(Boolean).sort(sortz).map(n=>rn(n.id)).join("");
+}
+function treeToggle(gid){
+  treeOpen[gid]=!treeOpen[gid];
+  const n=MKTREE&&MKTREE.nodes[gid];
+  if(treeOpen[gid]&&n&&n.types&&n.types.length&&!(MKTREE.names[gid])) ensureGroupItemNames(gid);
+  renderTree();
+}
+async function ensureGroupItemNames(gid){
+  const n=MKTREE&&MKTREE.nodes[gid]; if(!n||!n.types||!n.types.length||MKTREE.names[gid]) return;
+  MKTREE.names[gid]={};
+  const fallback=await loadItemNamesJson();
+  for(const tid of n.types){ MKTREE.names[gid][String(tid)]=fallback[String(tid)]||"（未命名物品）"; }
+  try{ lsSet(TREE_KEY, JSON.stringify(MKTREE)); }catch(e){}
+  renderTree();
+}
+$("#treeBox").addEventListener("click", e=>{
+  const del=e.target.closest("[data-favdel]");
+  if(del){ favs=favs.filter(f=>String(f.id)!==String(del.dataset.favdel)); saveFavs(); renderTree(); renderFavBtn(); return; }
+  const ft=e.target.closest("[data-favtoggle]");
+  if(ft){ favOpen=!favOpen; renderTree(); return; }
+  const fl=e.target.closest("[data-favid]");
+  if(fl){ const f=favs.find(x=>String(x.id)===fl.dataset.favid); treeSelType=+fl.dataset.favid; selectItem(+fl.dataset.favid, f?f.name:null); return; }
+  const g=e.target.closest(".tn"), lf=e.target.closest(".tleaf");
+  if(g){ treeToggle(g.dataset.g); return; }
+  if(lf){
+    const tid=+lf.dataset.type, gid=lf.dataset.g;
+    treeSelType=tid;
+    const nm=(MKTREE.names[gid]&&MKTREE.names[gid][tid])||"未知物品";
+    renderTree(); selectItem(tid, nm);
+  }
+});
+$("#treeStatus").addEventListener("click", ()=>{ if(!MKTREE||!MKTREE.roots||!Object.keys(MKTREE.nodes).length){ try{ lsDel(TREE_KEY); }catch(e){} MKTREE=null; buildMarketTree(); } });
+
+/* ---------- 自动刷新（刷新当前物品行情 + 吉他基础矿物收购价） ---------- */
+let dashTimer=null, dashCdTimer=null, dashRunning=true, dashInterval=900;
+function dashCdStart(){
+  clearInterval(dashCdTimer); let left=dashInterval;
+  const hum = dashInterval>=3600? (dashInterval/3600)+"小时" : dashInterval>=60? (dashInterval/60)+"分钟" : dashInterval+"秒";
+  const upd=()=>{ $("#dCountdown").textContent=dashRunning?("每 "+hum+" · "+left+"s"):"已暂停"; };
+  upd(); dashCdTimer=setInterval(()=>{ left--; if(left<0)left=dashInterval; upd(); },1000);
+}
+function dashTimerStart(){ clearInterval(dashTimer); dashTimer=setInterval(()=>{ if(dashRunning) dashRefresh(); }, dashInterval*1000); dashCdStart(); }
+async function dashRefresh(){
+  $("#dStatus").className="status"; $("#dStatus").textContent="刷新中…";
+  try{
+    if(mCurrentType){ await selectItem(mCurrentType.id, mCurrentType._name); }
+    renderMinerals();
+    $("#dRegion").textContent=curArea();
+    $("#dUpdated").textContent=new Date().toLocaleTimeString("zh-CN",{hour12:false});
+    $("#dStatus").className="status ok"; $("#dStatus").textContent="已刷新 · "+SERVERS[state.server].label+" · 第三方市场数据服务";
+  }catch(err){ $("#dStatus").className="status err"; $("#dStatus").textContent="刷新失败："+err.message; }
+}
+async function renderMinerals(){
+  try{ const ms=await evemon(); const box=$("#dMineral"); box.innerHTML="";
+    ms.forEach(m=>{ const s=document.createElement("span"); s.className="m"; s.innerHTML="<span>"+escapeHtml(m.name)+"</span> <b>"+money(m.price)+"</b>"; box.appendChild(s); });
+  }catch(e){ $("#dMineral").innerHTML="<span class='tip'>矿物收购价获取失败："+escapeHtml(e.message)+"</span>"; }
+}
+$("#dRefresh").addEventListener("click", dashRefresh);
+$("#dToggle").addEventListener("click", ()=>{ dashRunning=!dashRunning; $("#dToggle").textContent=dashRunning?"暂停":"继续"; dashCdStart(); });
+$("#dInterval").addEventListener("change", e=>{ dashInterval=+e.target.value; dashTimerStart(); });
+
+/* ---------- 生产建筑（全局，位于商品制造/工业生产页） ---------- */
+function fillBuilding(){
+  const sels=[$("#manuBuilding"),$("#indBuilding")];
+  sels.forEach(sel=>{ if(!sel) return; sel.innerHTML="";
+    for(const k in BUILDINGS){ const o=document.createElement("option"); o.value=k; o.textContent=BUILDINGS[k].label; if(k===state.building) o.selected=true; sel.appendChild(o); }
+  });
+}
+function applyBuilding(id){
+  const b=BUILDINGS[id]; if(!b) return;
+  state.building=id; state.jobFee=b.jobFee; state.matFee=b.matFee; state.broker=b.broker; state.tax=b.tax;
+  if($("#cJobFee")){ $("#cJobFee").value=b.jobFee; } if($("#cMatFee")){ $("#cMatFee").value=b.matFee; }
+  const sels=[$("#manuBuilding"),$("#indBuilding")];
+  sels.forEach(sel=>{ if(sel) sel.value=id; });
+  saveState(); if(typeof computeCost==="function") computeCost(); renderFeeList(); renderSettingsEff(); renderCharEffect();
+  if($("#bomStatus")){ $("#bomStatus").className="status ok"; $("#bomStatus").textContent="已按「"+b.label+"」全局填入费率：经纪 "+state.broker+"% · 税 "+state.tax+"% · 工业费 "+b.jobFee+" ISK · 材料加成 "+b.matFee+"%。"; }
+  toast("已按「"+b.label+"」全局填入费率","ok");
+}
+$("#manuBuilding").addEventListener("change", e=>applyBuilding(e.target.value));
+if($("#indBuilding")) $("#indBuilding").addEventListener("change", e=>applyBuilding(e.target.value));
+function renderSettingsEff(){
+  const {broker,tax}=feeRates();
+  const b=$("#setBrokerEff"), t=$("#setTaxEff");
+  if(b) b.textContent=broker.toFixed(2)+"%（基础 "+state.broker+"%）";
+  if(t) t.textContent=tax.toFixed(2)+"%（基础 "+state.tax+"%）";
+}
+function renderSettings(){
+  fillBuilding();
+  if($("#cJobFee")){ $("#cJobFee").value=state.jobFee; } if($("#cMatFee")){ $("#cMatFee").value=state.matFee; }
+  if($("#sMargin")){ $("#sMargin").value=state.margin; if($("#sMarginVal")) $("#sMarginVal").textContent=state.margin+"%"; }
+  renderSettingsEff();
+}
+
+/* ---------- 视图切换（hash 路由） ---------- */
+const VIEWS=["dash","industry","manuf","sell","char"];
+function switchView(v){
+  if(!VIEWS.includes(v)) v="dash";
+  VIEWS.forEach(x=>{ $("#view-"+x).classList.toggle("active",x===v); document.querySelector('[data-view="'+x+'"]').classList.toggle("active",x===v); });
+  if(v==="dash" && dashRunning && !dashTimer){ dashTimerStart(); dashRefresh(); }
+  window.location.hash=v;
+}
+document.querySelectorAll("#nav button").forEach(b=>b.addEventListener("click", ()=>switchView(b.dataset.view)));
+window.addEventListener("hashchange", ()=>{ switchView(location.hash.replace("#","")||"dash"); });
+
+/* ---------- 数字步进器（数量输入框：1/10/100 三挡 + 左减右加） ---------- */
+function makeStepper(input){
+  if(input.closest(".stepper")) return;
+  const wrap=document.createElement("div"); wrap.className="stepper"; wrap._step=1;
+  const sel=document.createElement("div"); sel.className="stsel";
+  [1,10,100].forEach(s=>{ const b=document.createElement("button"); b.type="button"; b.textContent=s; b.dataset.st=s; if(s===1)b.classList.add("on");
+    b.addEventListener("click", ()=>{ sel.querySelectorAll("button").forEach(x=>x.classList.remove("on")); b.classList.add("on"); wrap._step=s; }); sel.appendChild(b); });
+  const minus=document.createElement("button"); minus.type="button"; minus.className="stbtn minus"; minus.textContent="−";
+  minus.addEventListener("click", ()=>stepBy(input,wrap,-1));
+  const plus=document.createElement("button"); plus.type="button"; plus.className="stbtn"; plus.textContent="+";
+  plus.addEventListener("click", ()=>stepBy(input,wrap,1));
+  input.parentNode.insertBefore(wrap, input);
+  wrap.appendChild(sel); wrap.appendChild(minus); wrap.appendChild(input); wrap.appendChild(plus);
+}
+function stepBy(input, wrap, dir){
+  let v=parseFloat(input.value); if(isNaN(v)) v=0; v=v+(dir*(wrap._step||1));
+  const min=(input.min!=null&&input.min!=="")?parseFloat(input.min):null, max=(input.max!=null&&input.max!=="")?parseFloat(input.max):null;
+  if(min!=null&&v<min) v=min; if(max!=null&&v>max) v=max;
+  input.value=String(Math.round(v*1000)/1000);
+  input.dispatchEvent(new Event("input",{bubbles:true}));
+  input.dispatchEvent(new Event("change",{bubbles:true}));
+}
+function stepperify(root){ (root||document).querySelectorAll("input[type=number].qty").forEach(inp=>makeStepper(inp)); }
+const stepperObs=new MutationObserver(muts=>{ for(const m of muts){ if(m.addedNodes.length) stepperify(m.target); } });
+stepperObs.observe(document.body,{childList:true,subtree:true});
+stepperify(document.body);
+
+/* ---------- 市场动态子标签：实时交易 / 合同查询 / 扫描估价 ---------- */
+document.querySelectorAll("#view-dash .subnav button").forEach(b=>b.addEventListener("click", ()=>{
+  const sub=b.dataset.sub;
+  document.querySelectorAll("#view-dash .subnav button").forEach(x=>x.classList.toggle("on", x===b));
+  document.querySelectorAll("#view-dash .subpane").forEach(p=>p.style.display = p.id==="sub-"+sub?"block":"none");
+  if(sub==="contract") updateConTip();
+}));
+function updateConTip(){
+  const tip=$("#conRegionTip"); if(!tip) return;
+  tip.textContent="当前："+(SERVERS[state.server]?.label||state.server)+" · "+curArea();
+}
+const CON_TYPE={item_exchange:"物品",auction:"拍卖",courier:"运输",loan:"借贷"};
+async function loadContracts(){
+  const st=$("#conStatus"); updateConTip();
+  if(state.server!=="tranquility"){
+    st.className="status err";
+    st.textContent="国服（区服一/区服二）暂无免费公开合同数据源；公开合同查询当前仅支持欧服（公开接口）。切换到欧服后可用。";
+    return;
+  }
+  st.className="status"; st.textContent="正在查询 "+curArea()+" 公开合同…";
+  try{
+    const r=await fetch("/publiccontracts/"+state.regionId);
+    if(!r.ok){ let m=""; try{ m=await r.text(); }catch(e){} throw new Error("HTTP "+r.status+" "+m.slice(0,120)); }
+    const res=await r.json();
+    const list=Array.isArray(res)?res:((res&&res.data)||[]);
+    if(!list.length){ st.className="status"; st.textContent="该星域暂无公开合同。"; return; }
+    const box=$("#conBody");
+    box.innerHTML="<table class='orders'><colgroup><col style='width:10%'><col style='width:14%'><col style='width:16%'><col style='width:12%'><col style='width:10%'><col style='width:16%'><col style='width:22%'></colgroup><thead><tr><th>类型</th><th>起价</th><th>买断价</th><th>体积</th><th>剩余天</th><th>过期时间</th><th>说明</th></tr></thead><tbody>"+
+      list.map(c=>"<tr><td>"+escapeHtml(CON_TYPE[c.type]||c.type)+"</td><td>"+num(c.price)+"</td><td>"+num(c.buyout||0)+"</td><td>"+fmt(c.volume)+"</td><td>"+(c.days_to_complete||"—")+"</td><td>"+escapeHtml(c.date_expired||"—")+"</td><td style='white-space:normal;color:var(--muted)'>"+escapeHtml(c.title||"—")+"</td></tr>").join("")+"</tbody></table>";
+    st.className="status ok"; st.textContent="共 "+list.length+" 条公开合同（"+SERVERS[state.server].label+"）。";
+  }catch(err){ st.className="status err"; st.textContent="查询失败："+err.message; }
+}
+$("#conLoad").addEventListener("click", loadContracts);
+
+/* 扫描估价 */
+/* 清洗物品显示名 → 提取可用于市场搜索的关键字 */
+function cleanItemName(name){
+  let n = String(name).trim();
+  // 1) 剥离属主后缀：" - Junchen-8023"
+  n = n.replace(/\s*[-–—]\s*[A-Za-z0-9][A-Za-z0-9_-]*\s*$/, "").trim();
+  // 2) 剥离前置标签："【PVE】"、"[字]"等
+  n = n.replace(/^【[^】]*】\s*/, "").trim();
+  // 3) 仅丢弃装载/任务标签：形如「xxx 2级任务/异常」→ 取「xxx」。
+  //    不误伤「漫步者级 翻新组件」「多谱式护盾增强器 II」等合法后续词（非数字+级 开头的保留）
+  n = n.replace(/^(.*?)\s+\d+级\S*\s*.*$/, "$1").trim();
+  // 4) 剥离尾部星号等符号："伊毕斯号*"
+  n = n.replace(/[*＊·•]\s*$/, "").trim();
+  return n;
+}
+function parseScan(text){
+  const out=[];
+  const reQ=/^([\d,]+(?:\.\d+)?)\s*[x×*]\s*(.+)$/i, reN=/^(.+?)\s*[x×*]\s*([\d,]+(?:\.\d+)?)$/i;
+  text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean).forEach(ln=>{
+    let name, qty;
+    // 优先：游戏内复制格式「物品名 \t 数量 \t 分类 \t … \t 单价」——取第1列名称、第2列数量，多余列忽略
+    const tab=ln.split(/\t/);
+    if(tab.length>1){
+      name=tab[0].trim();
+      const q=(tab[1]||"").trim();
+      qty=parseFloat(q.replace(/,/g,""));
+      if(isNaN(qty)) qty=1; // 部分物品数量列为空，按 1 读取
+    } else {
+      const m1=ln.match(reQ), m2=ln.match(reN);
+      if(m1){ qty=parseFloat(m1[1].replace(/,/g,"")); name=m1[2].trim(); }
+      else if(m2){ name=m2[1].trim(); qty=parseFloat(m2[2].replace(/,/g,"")); }
+      else { name=ln; qty=1; }
+    }
+    name = cleanItemName(name);
+    if(!name) return; out.push({name, qty:(isNaN(qty)||qty<=0)?1:qty, price:null});
+  });
+  return out;
+}
+function renderScan(items, failNames){
+  const box=$("#scanBody"); let total=0;
+  box.innerHTML=items.map(it=>{ const sub=(it.price||0)*it.qty; total+=sub;
+    return "<tr><td class='stn'>"+escapeHtml(it.name)+"</td><td>"+fmt(it.qty)+"</td><td>"+(it.price?"<span class='sell'>"+num(it.price)+"</span>":"<span style='color:var(--faint)'>未解析</span>")+"</td><td>"+num(sub)+"</td></tr>";
+  }).join("");
+  $("#scanTotal").textContent=money(total); $("#scanResult").style.display="block";
+}
+async function scanEstimate(){
+  const items=parseScan($("#scanIn").value);
+  if(!items.length){ const st=$("#scanStatus"); st.className="status err"; st.textContent="未识别到有效清单行，请按「数量 x 物品名」格式粘贴。"; return; }
+  const st=$("#scanStatus"); st.className="status"; st.textContent="正在解析名称并拉取市价…";
+  const uniq=[...new Set(items.map(i=>i.name))], idmap={}, fail=[];
+  for(const n of uniq){ try{ const raw=await searchname(n); if(raw&&raw.length) idmap[n]=raw[0].typeid; else fail.push(n); }catch(e){ fail.push(n); } }
+  const ids=[...new Set(Object.values(idmap).filter(x=>!isNaN(x)))];
+  let prices={}; if(ids.length){ try{ prices=await marketstat(ids, state.regionId); }catch(e){} }
+  items.forEach(i=>{ const id=idmap[i.name]; const d=id&&prices[id]; i.price=(d?(d.sell.min||d.buy.max||0):null); });
+  renderScan(items, fail);
+  st.className="status ok"; st.textContent="共 "+items.length+" 项估值完成"+(fail.length?("，"+fail.length+" 项名称未解析："+fail.join("、")):"")+" · "+SERVERS[state.server].label;
+}
+$("#scanGo").addEventListener("click", scanEstimate);
+$("#scanClear").addEventListener("click", ()=>{ $("#scanIn").value=""; $("#scanResult").style.display="none"; $("#scanStatus").className="status"; $("#scanStatus").textContent=""; });
+$("#scanIn").addEventListener("keydown", e=>{ if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)) scanEstimate(); });
+
+/* ---------- 初始化 ---------- */
+function init(){
+  if(location.protocol==="file:"){ $("#fileBanner").classList.add("show"); }
+  // 加载时按服务器校准交易区（兼容旧版存档）
+  state.regionByServer = Object.assign({serenity:10000002,shuguang:10000016,tranquility:10000002}, state.regionByServer||{});
+  state.systemByServer = Object.assign({serenity:30000142,shuguang:30001363,tranquility:30000142}, state.systemByServer||{});
+  state.regionId = state.regionByServer[state.server] || SERVER_DEFAULT[state.server].region || 10000002;
+  state.systemId = state.systemByServer[state.server] || null;
+  state.skills = Object.assign({}, DEF.skills, state.skills||{});
+  state.charName = state.charName||"";
+  loadUniverse().then(()=>{ fillRegions(); applyTopPills(); if($("#dRegion")) $("#dRegion").textContent=curArea(); });
+  loadFavs();
+  loadTree(); renderTree(); if(!MKTREE) buildMarketTree();
+  loadBom(); renderBom(); renderSettings(); renderFeeList(); renderSkills(); renderCharProfiles(); loadR(); renderRefine();
+  loadBP().catch(()=>{});
+  loadIndustry().catch(()=>{});
+  fillPi().catch(()=>{});
+  fillSpi().catch(()=>{});
+  const v=location.hash.replace("#","")||"dash";
+  VIEWS.forEach(x=>{ $("#view-"+x).classList.toggle("active",x===v); document.querySelector('[data-view="'+x+'"]').classList.toggle("active",x===v); });
+  if(v==="dash"){ dashTimerStart(); dashRefresh(); }
+}
+init();
+</script>
+
+<div class="toast" id="toast"></div>
+</body>
+</html>
