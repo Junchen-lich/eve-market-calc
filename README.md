@@ -42,4 +42,4 @@ node server.js
 
 ## 许可证
 
-本项目采用 **GNU GPL v3.0**（见 `LICENSE`）。Copyright (C) 2026 Junchen-lich.需商业授权请联系作者。第三方基于本代码的修改与分发须遵守 GPL-3.0 条款。
+本项目采用 **GNU GPL v3.0**（见 `LICENSE`）。Copyright (C) 2026 Junchen-lich. 需商业授权请联系作者。第三方基于本代码的修改与分发须遵守 GPL-3.0 条款。
