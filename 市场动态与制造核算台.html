@@ -226,6 +226,11 @@ input[type=number]{-moz-appearance:textfield; appearance:textfield}
 .wcard .whead{display:flex; align-items:center; justify-content:space-between; gap:8px}
 .wcard .wn{font-size:15px; font-weight:800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .wcard .del{background:none;border:none;color:var(--faint);cursor:pointer;font-size:17px;line-height:1}
+.rrow .del{background:none;border:none;color:var(--faint);cursor:pointer;font-size:16px;line-height:1;padding:0 5px;transition:color .15s}
+.rrow .del:hover{color:var(--danger,#e5574f)}
+.rrow .pk{color:var(--faint);font-size:11px;margin-right:2px}
+.rrow .pk input{vertical-align:-1px;margin-right:2px}
+.rrow .rg{color:var(--accent,#7fb2ff);font-size:11px;margin-right:2px}
 .wcard .del:hover{color:var(--neg)}
 .wcard .wrow{display:grid; grid-template-columns:1fr 1fr; gap:8px}
 .wcard .wk{font-size:11px; color:var(--muted); margin-bottom:3px}
@@ -313,6 +318,19 @@ input[type=number]{-moz-appearance:textfield; appearance:textfield}
 .mktree::-webkit-scrollbar-thumb:hover, .searchlist::-webkit-scrollbar-thumb:hover,
 .csel-menu::-webkit-scrollbar-thumb:hover, .subpane::-webkit-scrollbar-thumb:hover{background:#3a4d6b; border:2px solid transparent; background-clip:content-box}
 .mktree, .searchlist, .csel-menu, .subpane{scrollbar-width:thin; scrollbar-color:#2a3a52 transparent}
+/* ---------- 每日数据库更新提示 ---------- */
+.dbmodal-overlay{position:fixed; inset:0; background:rgba(5,8,14,.68); z-index:200; display:none; align-items:center; justify-content:center}
+.dbmodal-overlay.show{display:flex}
+.dbmodal{background:var(--panel); border:1px solid var(--line2); border-radius:12px; padding:20px 22px; max-width:480px; width:calc(100% - 40px); box-shadow:0 12px 40px rgba(0,0,0,.5); color:var(--text)}
+.dbmodal h3{margin:0 0 10px; font-size:15px; font-weight:700}
+.dbmodal p{margin:7px 0; font-size:13px; color:var(--muted); line-height:1.65}
+.dbmodal .dburl{font-size:12px; color:#7fb2ff; word-break:break-all; background:var(--bg2); border:1px solid var(--line2); border-radius:6px; padding:7px 9px; margin:6px 0}
+.dbmodal .dbfile{color:var(--text); font-weight:600}
+.dbmodal .dbmodal-actions{display:flex; gap:10px; margin-top:16px}
+.dbmodal button{flex:1; padding:9px 12px; border-radius:8px; border:1px solid var(--line2); background:var(--panel2); color:var(--text); font-size:13px; cursor:pointer}
+.dbmodal button:hover{filter:brightness(1.1)}
+.dbmodal #dbOk{background:#7fb2ff; border-color:transparent; color:#0b0f17; font-weight:700}
+.dbmodal .dbstatus{margin-top:12px; font-size:12px; color:var(--muted); white-space:pre-wrap; max-height:120px; overflow:auto}
 @media (max-width:860px){
   .mktlayout{grid-template-columns:1fr}
   .mktree{position:static; max-height:42vh}
@@ -472,10 +490,16 @@ input[type=number]{-moz-appearance:textfield; appearance:textfield}
           <div class="field"><label>精炼产出率（%，由提炼技能与设施决定）</label><input type="number" id="rYield" value="100" step="0.1" class="qty"></div>
           <div class="field"><label>矿/冰量（单位）</label><input type="number" id="rQty" value="1000" step="100" class="qty"></div>
         </div>
+        <div class="field" style="margin-top:10px"><label>矿石分级（选择矿石族与级别，一键载入该级精炼产物）</label>
+          <div class="row"><select id="rOreSel" class="qty"></select><select id="rOreLv" class="qty"></select><button class="btn small" id="rOreApply">载入产物</button></div>
+          <div class="tip" style="margin-top:4px">载入后产物明细出现在下方，每单位产量、单价均可编辑。</div>
+        </div>
         <div id="rBreak"></div>
         <div class="row" style="margin-top:10px"><button class="btn small" id="rAddBtn">＋ 添加矿物产出</button><span class="tip" style="margin-left:8px">每单位产出量、单价均可编辑</span></div>
-        <div class="rrow total"><span class="k">精炼产物总价值</span><span class="v" id="rTotal">0</span></div>
-        <div class="tip" style="margin-top:6px">按你实际提炼所得逐条录入矿物（每单位产出 × 精炼产出率 × 矿量）。精炼产出率含提炼学概论技能加成，可调基础值。矿物单价可手动填或用「制造」页拉取。</div>
+        <div class="rrow total"><span class="k">精炼产物总价值（手动单价）</span><span class="v" id="rTotal">0</span></div>
+        <div class="rrow total"><span class="k">买单总价（按最高买单 · 卖出所得）</span><span class="v" id="rBuyTotal">0</span></div>
+        <div class="rrow total"><span class="k">卖单总价（按最低卖单 · 买入成本）</span><span class="v" id="rSellTotal">0</span></div>
+        <div class="tip" style="margin-top:6px">按你实际提炼所得逐条录入矿物（每单位产出 × 精炼产出率 × 矿量）。载入产物时自动按当前交易区拉取买单/卖单单价：买单=最高买单（卖出所得），卖单=最低卖单（买入成本）。手动单价可编辑。</div>
       </div>
     </div>
 
@@ -747,6 +771,11 @@ input[type=number]{-moz-appearance:textfield; appearance:textfield}
           <button class="btn" id="chProfileLoad">载入档案</button>
           <button class="btn ghost" id="chProfileDel">删除档案</button>
         </div>
+        <div class="row" style="margin-top:6px">
+          <button class="btn" id="chExport">导出 CSV</button>
+          <button class="btn ghost" id="chImport">导入 CSV</button>
+          <input type="file" id="chImportFile" accept=".csv,text/csv" style="display:none">
+        </div>
         <div id="chProfileInfo" class="tip" style="margin-top:6px"></div>
         <div class="tip" style="margin-top:4px">以「角色名 + 服务器」识别档案：输入不同的角色名保存即新建档案（原档案保留），同名同服再次保存则覆盖更新该档案。保存内容包括技能等级、官方接口角色 ID；下次打开或点「载入档案」即可一键还原。</div>
       </div>
@@ -843,11 +872,14 @@ input[type=number]{-moz-appearance:textfield; appearance:textfield}
         <div class="card">
           <h3>提炼材料挂单 <span class="hint">矿石 → 精炼矿物出售</span></h3>
           <div class="field"><label>精炼产出率（%，含提炼技能与设施）</label><input type="number" id="mgYield" value="80" step="0.5" class="qty"></div>
+          <div class="field" style="margin-top:8px"><label>矿石分级（选择矿石族与级别，一键载入该级精炼产物到下方明细）</label>
+            <div class="row"><select id="mgOreSel" class="qty"></select><select id="mgOreLv" class="qty"></select><button class="btn small" id="mgOreApply">载入产物</button></div>
+          </div>
           <div class="tip" style="margin:6px 0">每单位矿石提炼出的矿物（每单位产量 × 精炼率 × 矿量），单价可拉取或手填：</div>
           <div id="mgRefRows"></div>
           <div class="row" style="margin-top:10px"><button class="btn small" id="mgAddRow">＋ 添加矿物产出</button><button class="btn" id="mgPullRef">拉取矿物卖单价</button></div>
           <div class="rows" id="mgRefBreak"></div>
-          <div class="tip" style="margin-top:8px">对比「原矿出售净收」与「提炼材料出售净收」，择高者挂单。精炼矿物自动产出数据需矿石再处理配方（SDE）补充，当前以手动填写为准。</div>
+          <div class="tip" style="margin-top:8px">对比「原矿出售净收」与「提炼材料出售净收」，择高者挂单。用上方「矿石分级」一键载入精炼产物，每单位产量、单价可编辑；斜长岩/凡晶石等含内置每单位产量，其余留空可手填。</div>
         </div>
       </div>
     </div>
@@ -899,9 +931,9 @@ input[type=number]{-moz-appearance:textfield; appearance:textfield}
 
 /* ---------- 常量 ---------- */
 const SERVERS = {
-  serenity:   {label:"国服·区服一", prefix:"/api"},
-  shuguang:   {label:"国服·区服二", prefix:"/infapi"},
-  tranquility:{label:"欧服·区服三", prefix:"/tqapi"},
+  serenity:   {label:"国服晨曦", prefix:"/api"},
+  shuguang:   {label:"国服曙光", prefix:"/infapi"},
+  tranquility:{label:"欧服宁静", prefix:"/tqapi"},
 };
 /* 中文别名（显示用）：枢纽星域 / 枢纽星系 */
 const REGION_CH = { 10000002:"吉他", 10000016:"索巴色基", 10000043:"阿玛尔", 10000032:"多迪西埃", 10000030:"伦斯", 10000042:"赫克" };
@@ -1125,7 +1157,7 @@ function makeCsel(el, scopeOpts, value, onchange, poolOpts){
   render();
   return el;
 }
-const SERVER_OPTS=[{value:"serenity",label:"国服·区服一"},{value:"shuguang",label:"国服·区服二"},{value:"tranquility",label:"欧服·区服三"}];
+const SERVER_OPTS=[{value:"serenity",label:"国服晨曦"},{value:"shuguang",label:"国服曙光"},{value:"tranquility",label:"欧服宁静"}];
 /* 加载 universe（星域/星座/星系），填充 REGION_MAP / SYSTEM_MAP */
 async function loadUniverse(){
   if(UNIV) return;
@@ -1233,12 +1265,14 @@ function applyTopPills(){
 makeCsel($("#topServer"), SERVER_OPTS, state.server, v=>{
   state.server=v;
   const sv=SERVER_DEFAULT[state.server]||SERVER_DEFAULT.serenity;
-  state.regionByServer[state.server]=state.regionByServer[state.server]||sv.region;
-  state.systemByServer[state.server]=state.systemByServer[state.server]||sv.system;
-  state.regionId=state.regionByServer[state.server];
-  state.systemId=state.systemByServer[state.server]||null;
-  saveState(); applyTopPills();
-  toast("已切换服务器："+(SERVERS[state.server]?.label||state.server)+" · 默认交易区 "+(state.systemId? sysLabel(state.systemId):regName(state.regionId)), "ok");
+  state.regionId=sv.region;
+  state.systemId=sv.system;
+  state.regionByServer[state.server]=state.regionId;
+  state.systemByServer[state.server]=state.systemId;
+  saveState();
+  if(UNIV){ rebuildConstellation(); rebuildSystem(); }
+  applyTopPills();
+  toast("已切换服务器："+(SERVERS[state.server]?.label||state.server)+" · 已带入默认交易区 "+(state.systemId? sysLabel(state.systemId):regName(state.regionId)), "ok");
   resetMarketView(); dashRefresh();
 });
 
@@ -1563,6 +1597,23 @@ document.querySelectorAll(".acttabs").forEach(tabs=>{
   }));
 });
 
+/* ---------- 矿石分级（EVE-Data 物品列表页解析：族 → 级别 → 精炼产物） ---------- */
+let ORES=null;
+async function loadOres(){ if(ORES) return ORES; const r=await fetch("_ores.json"); if(!r.ok) throw new Error("HTTP "+r.status); ORES=await r.json(); return ORES; }
+function fillOreLevel(selId,lvId){ const sel=$("#"+selId), lv=$("#"+lvId); lv.innerHTML=""; const o=ORES&&ORES[sel.value]; if(!o) return; o.levels.forEach(it=>{ const x=document.createElement("option"); x.value=(it.level===null||it.level===undefined)?"":String(it.level); x.textContent=it.name; lv.appendChild(x); }); }
+function fillOreFamily(selId,lvId){ const sel=$("#"+selId); sel.innerHTML=""; const names=Object.keys(ORES||{}).sort((a,b)=>a.localeCompare(b,"zh")); const o=document.createElement("option"); o.value=""; o.textContent="— 选择矿石族 —"; sel.appendChild(o); names.forEach(n=>{const x=document.createElement("option"); x.value=n; x.textContent=n; sel.appendChild(x);}); fillOreLevel(selId,lvId); }
+function applyOre(selId,lvId,out){ const o=ORES&&ORES[$("#"+selId).value]; if(!o||!out) return; const lv=$("#"+lvId).value; const lvo=o.levels.find(it=>String((it.level===null||it.level===undefined)?"":it.level)===lv); if(!lvo) return; out.length=0; lvo.prods.forEach(p=>out.push({name:p.name, qty:(p.qty!=null?p.qty:(p.min!=null?p.min:"")), price:"", buyPrice:"", sellPrice:"", id:p.typeid||null, min:p.min, max:p.max, pick:(p.min!=null?false:true)})); fetchOrePrices(out); }
+function price3(n){ return (isNaN(n)||n==null?"—":Number(n).toLocaleString("en-US",{minimumFractionDigits:3,maximumFractionDigits:3})); }
+/* 载入产物后按当前交易区拉取买单（最高买单）/卖单（最低卖单）单价 */
+async function fetchOrePrices(out){
+  const ids=[...new Set(out.map(m=>m.id).filter(id=>id))];
+  if(!ids.length) return;
+  let stats=null; try{ const r=await marketstat(ids, state.regionId); stats = ids.length===1 ? {[ids[0]]:r} : r; }catch(e){ return; }
+  ids.forEach(id=>{ const s=stats&&stats[id]; if(!s) return; const m=out.find(x=>x.id===id); if(!m) return; const bp=+(s.buy&&s.buy.max)||0, sp=+(s.sell&&s.sell.min)||0; if(bp>0) m.buyPrice=bp; if(sp>0) m.sellPrice=sp; });
+  if(out===rMats){ renderRefine(); saveR(); } else if(out===mgRef && mgRefRender){ mgRefRender(); }
+}
+async function initOreSel(selId,lvId,applyId,out,render,save){ try{ await loadOres(); fillOreFamily(selId,lvId); }catch(e){ console.warn("ores 加载失败",e); } $("#"+selId).addEventListener("change",()=>fillOreLevel(selId,lvId)); $("#"+applyId).addEventListener("click",()=>{ applyOre(selId,lvId,out); render(); save&&save(); }); }
+
 /* ---------- 提炼（手动矿物明细 + 技能/设施精炼率） ---------- */
 let rMats=[]; const RKEY="eve_mk_refine_v1";
 function loadR(){ try{ rMats=JSON.parse(lsGet(RKEY))||[]; }catch(e){ rMats=[]; } }
@@ -1572,22 +1623,33 @@ function renderRefine(){
   const box=$("#rBreak"); if(!box) return;
   const qty=Math.max(0,parseFloat($("#rQty").value)||0), yieldPct=refineRate();
   let rows="<div class='rrow sub'><span class='k'>精炼产出率 "+yieldPct.toFixed(1)+"%（技能 +"+refineBoostPct()+"%） · 矿量 "+fmt(qty)+"</span></div>";
-  let total=0;
+  let total=0, buyTotal=0, sellTotal=0;
   rMats.forEach((m,i)=>{
-    const out=qty*(parseFloat(m.qty)||0)*yieldPct/100, val=out*(parseFloat(m.price)||0); total+=val;
-    rows+="<div class='rrow'><span class='k'><input class='sm' data-r='"+i+"' data-f='name' value='"+escapeHtml(m.name)+"' placeholder='矿物名' style='width:110px'> "+
-      "<input class='sm' data-r='"+i+"' data-f='qty' value='"+(m.qty||"")+"' placeholder='每单位' style='width:70px'> "+
-      "<input class='sm' data-r='"+i+"' data-f='price' value='"+(m.price||"")+"' placeholder='单价' style='width:80px'></span>"+
-      "<span class='v'>产出 "+fmt(out)+" · "+money(val)+" <button class='del' data-rdel='"+i+"' aria-label='删除'>×</button></span></div>";
+    const sel=m.pick!==false;
+    const out=sel?qty*(parseFloat(m.qty)||0)*yieldPct/100:0, val=sel?out*(parseFloat(m.price)||0):0;
+    if(sel) total+=val;
+    const bp=parseFloat(m.buyPrice)||0, sp=parseFloat(m.sellPrice)||0;
+    if(sel){ buyTotal+=out*bp; sellTotal+=out*sp; }
+    const isRange=m.min!=null;
+    const pkHtml=isRange?"<label class='pk'><input type='checkbox' data-pick='"+i+"'"+(m.pick?" checked":"")+">本次计算</label> ":"";
+    const rgHtml=isRange?"<span class='rg'>"+fmt(m.min)+" ~ "+fmt(m.max)+"</span> ":"";
+    rows+="<div class='rrow'><span class='k'>"+pkHtml+
+      "<input class='sm' data-r='"+i+"' data-f='name' value='"+escapeHtml(m.name)+"' placeholder='矿物名' style='width:96px'> "+
+      "<input class='sm' data-r='"+i+"' data-f='qty' value='"+(m.qty||"")+"' placeholder='每单位' style='width:56px'> "+rgHtml+
+      "<input class='sm' data-r='"+i+"' data-f='price' value='"+(m.price||"")+"' placeholder='单价' style='width:62px'></span>"+
+      "<span class='v'>"+(bp?"买 "+price3(bp):"")+(bp&&sp?" · ":"")+(sp?"卖 "+price3(sp):"")+" · 产出 "+fmt(out)+" · "+money(val)+" <button class='del' data-rdel='"+i+"' aria-label='删除'>×</button></span></div>";
   });
   box.innerHTML=rows+(rMats.length?"":"<div class='tip'>点击「＋ 添加矿物产出」录入提炼所得矿物。</div>");
   $("#rTotal").textContent=money(total);
+  const bt=$("#rBuyTotal"), st=$("#rSellTotal"); if(bt) bt.textContent=money(buyTotal); if(st) st.textContent=money(sellTotal);
 }
 function rAdd(){ rMats.push({name:"",qty:0,price:""}); renderRefine(); saveR(); }
 $("#rBreak").addEventListener("input", e=>{ const t=e.target; if(t.dataset.r==null||t.dataset.f==null) return; rMats[+t.dataset.r][t.dataset.f]=t.value; renderRefine(); saveR(); });
 $("#rBreak").addEventListener("click", e=>{ const i=e.target.dataset.rdel; if(i==null) return; rMats.splice(+i,1); renderRefine(); saveR(); });
+$("#rBreak").addEventListener("change", e=>{ const t=e.target; if(t.dataset.pick==null) return; rMats[+t.dataset.pick].pick=t.checked; renderRefine(); });
 $("#rAddBtn").addEventListener("click", rAdd);
 ["rYield","rQty"].forEach(id=>$("#"+id).addEventListener("input", renderRefine));
+// initOreSel("rOreSel","rOreLv","rOreApply", rMats, renderRefine, saveR); /* 移到 loadR 之后（见初始化块） */
 
 /* ---------- 研发（ME/TE 研究时间 + 服务费） ---------- */
 /* 剪贴板助手 */
@@ -1969,6 +2031,83 @@ async function esiPull(){
 $("#chEsi").addEventListener("click", esiPull);
 $("#chEsiChar").addEventListener("blur", ()=>{ state.esiCharId=$("#chEsiChar").value.trim(); saveState(); });
 
+/* ---------- 角色档案 CSV 导出 / 导入 ---------- */
+const CHAR_CSV_COLS = [ ["档案ID","id"],["显示名","name"],["服务器键","server"],["服务器","serverLabel"],["角色名","charName"] ]
+  .concat(SKILLS.map(s=>[s.k,s.id]))
+  .concat([["官方角色ID","esiCharId"],["更新时间","updated"]]);
+const SERVER_LABELS={ serenity:"国服晨曦", shuguang:"国服曙光", tranquility:"欧服宁静" };
+function csvEsc(v){ v=(v==null?"":String(v)); return /[",\r\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; }
+function parseCSV(text){
+  const rows=[]; let row=[], cur="", inQ=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(inQ){ if(c==='"'){ if(text[i+1]==='"'){cur+='"';i++;} else inQ=false; } else cur+=c; }
+    else if(c==='"'){ inQ=true; }
+    else if(c===','){ row.push(cur); cur=""; }
+    else if(c==='\n'){ row.push(cur); rows.push(row); row=[]; cur=""; }
+    else if(c==='\r'){}
+    else cur+=c;
+  }
+  if(cur!==""||row.length){ row.push(cur); rows.push(row); }
+  return rows;
+}
+$("#chExport").addEventListener("click", ()=>{
+  if(!state.charProfiles.length){ $("#chStatus").className="status"; $("#chStatus").textContent="角色数据库为空，无可导出档案。"; return; }
+  const lines=[ CHAR_CSV_COLS.map(c=>c[0]).join(",") ];
+  state.charProfiles.forEach(p=>{
+    const vals=CHAR_CSV_COLS.map(c=>{
+      const k=c[1];
+      if(k==="serverLabel") return SERVERS[p.server]?.label || p.server || "";
+      if(k==="updated") return p.updated? new Date(p.updated).toISOString() : "";
+      if(SKILLS.some(s=>s.id===k)) return p.skills? (p.skills[k]==null?"":p.skills[k]) : "";
+      return p[k]==null?"":p[k];
+    });
+    lines.push(vals.map(csvEsc).join(","));
+  });
+  const blob=new Blob(["\uFEFF"+lines.join("\r\n")],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="角色档案.csv";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+  $("#chStatus").className="status ok";
+  $("#chStatus").textContent="已导出 "+state.charProfiles.length+" 条角色档案为「角色档案.csv」";
+  toast("已导出角色档案 CSV","ok");
+});
+$("#chImport").addEventListener("click", ()=>$("#chImportFile").click());
+$("#chImportFile").addEventListener("change", async e=>{
+  const f=e.target.files&&e.target.files[0]; if(!f) return;
+  let txt=""; try{ txt=await f.text(); }catch(err){ txt=""; }
+  e.target.value="";
+  const rows=parseCSV(txt);
+  if(rows.length<2){ $("#chStatus").className="status err"; $("#chStatus").textContent="CSV 无数据行，导入失败。"; return; }
+  const headers=rows[0].map(h=>String(h).replace(/^\uFEFF/,'').trim());
+  const col={}; headers.forEach((h,i)=>col[h]=i);
+  const get=(row,k)=>{ const i=col[k]; return i!=null?(row[i]==null?"":String(row[i]).trim()):""; };
+  const toServer=v=>{ v=(v||"").trim(); if(SERVERS[v]) return v; for(const k in SERVER_LABELS){ if(v===SERVER_LABELS[k]) return k; } return ""; };
+  let added=0, updated=0, skipped=0;
+  const skills0={acct:0,broker_rel:0,ind:0,advind:0,massprod:0,refine:0,refining:0,lab:0,sci:0,metal:0,res:0};
+  for(let r=1;r<rows.length;r++){
+    const row=rows[r];
+    if(row.length===1 && (row[0]==null||/^\s*$/.test(String(row[0])))) continue;
+    const server=toServer(get(row,"服务器键")||get(row,"服务器"));
+    const charName=get(row,"角色名");
+    if(!server||!charName){ skipped++; continue; }
+    const skills=Object.assign({},skills0);
+    SKILLS.forEach(s=>{ const v=parseInt(get(row,s.k),10); if(!isNaN(v)) skills[s.id]=Math.max(0,Math.min(5,v)); });
+    const id=get(row,"档案ID");
+    const tsRaw=get(row,"更新时间"); const ts=tsRaw? Date.parse(tsRaw):NaN;
+    const snap={ server, charName, skills, esiCharId:get(row,"官方角色ID")||"", updated:isNaN(ts)?Date.now():ts };
+    let p=state.charProfiles.find(x=>id&&x.id===id) || state.charProfiles.find(x=>(x.charName||"")===charName && x.server===server);
+    if(p){ Object.assign(p,snap); if(get(row,"显示名")) p.name=get(row,"显示名"); updated++; }
+    else { const np=Object.assign({ id:id||("c"+Date.now()), name:get(row,"显示名")||charName||"未命名角色" },snap); state.charProfiles.push(np); added++; }
+  }
+  if(added+updated){ saveState(); renderCharProfiles(); }
+  $("#chStatus").className= skipped? "status err":"status ok";
+  $("#chStatus").textContent="导入完成：新增 "+added+" 条，更新 "+updated+" 条"+(skipped?("；跳过 "+skipped+" 条（服务器或角色名为空）"):"")+"。";
+  toast("角色档案导入完成","ok");
+});
+
 /* ---------- 挂单核算 ---------- */
 function feeRates(){
   const baseBroker=state.broker, baseTax=state.tax;
@@ -2076,6 +2215,7 @@ function mgRefCompute(){
     "<div class='rrow total'><span class='k'>提炼材料挂单净收</span><span class='v' style='color:"+(net>=0?"var(--pos)":"var(--neg)")+"'>"+money(net)+"</span></div>";
 }
 $("#mgYield").addEventListener("input", mgRefCompute);
+initOreSel("mgOreSel","mgOreLv","mgOreApply", mgRef, mgRefRender, null);
 
 /* ---------- 种菜挂单（行星工业出售） ---------- */
 let lastSpi=null; const spiMatP={}, spiProdP={};
@@ -2446,7 +2586,7 @@ function init(){
   loadUniverse().then(()=>{ fillRegions(); applyTopPills(); if($("#dRegion")) $("#dRegion").textContent=curArea(); });
   loadFavs();
   loadTree(); renderTree(); if(!MKTREE) buildMarketTree();
-  loadBom(); renderBom(); renderSettings(); renderFeeList(); renderSkills(); renderCharProfiles(); loadR(); renderRefine();
+  loadBom(); renderBom(); renderSettings(); renderFeeList(); renderSkills(); renderCharProfiles(); loadR(); renderRefine(); initOreSel("rOreSel","rOreLv","rOreApply", rMats, renderRefine, saveR);
   loadBP().catch(()=>{});
   loadIndustry().catch(()=>{});
   fillPi().catch(()=>{});
@@ -2454,10 +2594,42 @@ function init(){
   const v=location.hash.replace("#","")||"dash";
   VIEWS.forEach(x=>{ $("#view-"+x).classList.toggle("active",x===v); document.querySelector('[data-view="'+x+'"]').classList.toggle("active",x===v); });
   if(v==="dash"){ dashTimerStart(); dashRefresh(); }
+  checkDbPrompt();
 }
+
+/* ---------- 每日数据库更新提示 ---------- */
+function checkDbPrompt(){
+  try{ fetch("/dbupdate-status").then(r=>r.json()).then(s=>{ if(s && s.needsPrompt) showDbModal(); }).catch(()=>{}); }catch(e){}
+}
+function showDbModal(){ const m=$("#dbmodal"); if(m) m.classList.add("show"); }
+function closeDbModal(){ const m=$("#dbmodal"); if(m) m.classList.remove("show"); }
+function runDbUpdate(){
+  const st=$("#dbstatus"); if(st) st.textContent="正在更新数据库，请稍候…";
+  fetch("/dbupdate-run",{method:"POST"}).then(r=>r.json()).then(o=>{
+    if(st) st.textContent = (o && o.message) || (o && o.ok ? "数据库更新完成" : "数据库更新未完成");
+    if(o && o.ok && st){ showToast("数据库已更新"); }
+  }).catch(()=>{ if(st) st.textContent="更新请求失败，请重试"; });
+}
+if($("#dbOk")) $("#dbOk").addEventListener("click", runDbUpdate);
+if($("#dbSkip")) $("#dbSkip").addEventListener("click", ()=>{ try{ fetch("/dbupdate-ignore",{method:"POST"}).catch(()=>{}); }catch(e){} closeDbModal(); });
 init();
 </script>
 
 <div class="toast" id="toast"></div>
+
+<!-- 每日数据库更新提示 -->
+<div class="dbmodal-overlay" id="dbmodal">
+  <div class="dbmodal">
+    <h3>每日数据库更新</h3>
+    <p>检测到今天为首次打开，请下载当日数据文件更新数据库：</p>
+    <div class="dburl">https://www.ceve-market.org/dumps/evedata.xlsx</div>
+    <p>请用浏览器打开上方链接下载 <span class="dbfile">evedata.xlsx</span>，并将其放到程序目录下 <span class="dbfile">data</span> 文件夹内（覆盖同名文件）。</p>
+    <div class="dbmodal-actions">
+      <button id="dbOk">我已放入，开始更新</button>
+      <button id="dbSkip">忽略，使用现有数据库</button>
+    </div>
+    <div class="dbstatus" id="dbstatus"></div>
+  </div>
+</div>
 </body>
 </html>

@@ -1,6 +1,6 @@
 {
   "name": "eve-market-calc",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "面向太空网游玩家的本地优先工具：市场行情查询、工业制造核算、精炼/反应/行星工业、挂单利润核算与角色技能联动。",
   "main": "server.js",
   "scripts": {

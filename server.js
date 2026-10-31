@@ -35,6 +35,8 @@ const DATA_FILES = {
   "/pi.json": ["pi.json", "application/json; charset=utf-8"],
   "/universe.json": ["universe.json", "application/json; charset=utf-8"],
   "/_ores.json": ["_ores.json", "application/json; charset=utf-8"],
+  "/stations.json": ["stations.json", "application/json; charset=utf-8"],
+  "/structures.json": ["structures.json", "application/json; charset=utf-8"],
 };
 
 function serveFile(res, filename, contentType) {
@@ -153,6 +155,9 @@ const server = http.createServer((req, res) => {
     const [f, ct] = DATA_FILES[p];
     return serveFile(res, f, ct);
   }
+  if (p === "/dbupdate-status") return dbUpdateStatus(req, res);
+  if (p === "/dbupdate-run") return dbUpdateRun(req, res);
+  if (p === "/dbupdate-ignore") return dbUpdateIgnore(req, res);
   if (p.startsWith("/userdata/")) return handleUserData(req, res, p);
   if (p.startsWith("/api/") || p.startsWith("/infapi/") || p.startsWith("/tqapi/")) return proxy(req, res);
   if (p.startsWith("/publiccontracts/")) {
@@ -190,3 +195,57 @@ server.listen(currentPort, () => {
     } catch (e) { /* 忽略：手动打开即可 */ }
   }
 });
+
+// ---- 每日数据库更新提示：每天 8:00 后首次打开时，提示用户下载 evedata.xlsx，可更新或忽略 ----
+const DB_PROMPT_FILE = path.join(DATA_DIR, "_db_prompt_last.json");
+let dbRunning = false;
+
+function todayStr() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return y + "-" + m + "-" + dd;
+}
+function readPromptDate() {
+  try { return (JSON.parse(fs.readFileSync(DB_PROMPT_FILE, "utf8")).date) || ""; }
+  catch (e) { return ""; }
+}
+function writePromptDate(date) {
+  try { fs.writeFileSync(DB_PROMPT_FILE, JSON.stringify({ date, time: new Date().toISOString() }), "utf8"); }
+  catch (e) { /* 记录失败不影响 */ }
+}
+// 状态：今天尚未提示过、且当前时间 >= 08:00，才需要提示
+function dbUpdateStatus(req, res) {
+  const now = new Date();
+  const today = todayStr();
+  const last = readPromptDate();
+  const needs = today !== last && now.getHours() >= 8;
+  res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-cache" });
+  res.end(JSON.stringify({ today, lastPromptDate: last, needsPrompt: needs, nowHour: now.getHours(), dataDir: DATA_DIR }));
+}
+// 用户选择“忽略”，记录今日已提示，本次使用现有数据库
+function dbUpdateIgnore(req, res) {
+  writePromptDate(todayStr());
+  res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+  res.end(JSON.stringify({ ok: true, message: "已记录，本次使用现有数据库" }));
+}
+// 用户点击“确定”（已把 evedata.xlsx 放到 data 目录），执行数据库更新
+function dbUpdateRun(req, res) {
+  if (dbRunning) {
+    res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+    return res.end(JSON.stringify({ ok: false, busy: true, message: "数据库更新正在进行中，请稍候" }));
+  }
+  const { execFile } = require("child_process");
+  const py = path.join(ROOT, "开发脚本", "_update_db.py");
+  dbRunning = true;
+  const start = Date.now();
+  execFile("python", [py], { timeout: 300000 }, (err, stdout, stderr) => {
+    dbRunning = false;
+    writePromptDate(todayStr());
+    const out = String(stdout || "").trim().replace(/\s+/g, " ") || (err ? String(err.message) : "已完成");
+    console.log("[" + new Date().toLocaleString("zh-CN") + "] 数据库更新:", out);
+    res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+    res.end(JSON.stringify({ ok: !err, message: out, elapsedMs: Date.now() - start }));
+  });
+}
